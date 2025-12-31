@@ -198,15 +198,15 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			const componentValue = component[elementKey];
 			if (component.source === "Base Percentages") {
 				basePercentage = componentValue;
-				parts.push(`Base: ${componentValue.toFixed(0)}%`);
+				parts.push(`Base: ${Math.round(componentValue)}%`);
 			} else if (componentValue !== 0) {
 				totalBuffs += componentValue;
 				const sign = componentValue > 0 ? "+" : "";
-				parts.push(`${component.source}: ${sign}${componentValue.toFixed(0)}`);
+				parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
 			}
 		});
 		
-		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${totalBuffs.toFixed(0)}\nFinal Percentage: ${total.toFixed(1)}%`;
+		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${Math.round(totalBuffs)}\nFinal Percentage: ${Math.round(total)}%`;
 	};
 
 	const formatDateInput = (date: Date): string => {
@@ -540,7 +540,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								>
 									<span className="element-emoji">🔥</span>
 									<span className="element-name">Fire</span>
-									<span className="element-percent">{elementalProfile.fire.toFixed(1)}%</span>
+									<span className="element-percent">{Math.round(elementalProfile.fire)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
 								<div 
@@ -554,7 +554,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								>
 									<span className="element-emoji">🌍</span>
 									<span className="element-name">Earth</span>
-									<span className="element-percent">{elementalProfile.earth.toFixed(1)}%</span>
+									<span className="element-percent">{Math.round(elementalProfile.earth)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
 								<div 
@@ -568,7 +568,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								>
 									<span className="element-emoji">💨</span>
 									<span className="element-name">Air</span>
-									<span className="element-percent">{elementalProfile.air.toFixed(1)}%</span>
+									<span className="element-percent">{Math.round(elementalProfile.air)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
 								<div 
@@ -582,7 +582,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								>
 									<span className="element-emoji">💧</span>
 									<span className="element-name">Water</span>
-									<span className="element-percent">{elementalProfile.water.toFixed(1)}%</span>
+									<span className="element-percent">{Math.round(elementalProfile.water)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
 								{elementalProfile.spirit > 0 && (
@@ -597,7 +597,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 									>
 										<span className="element-emoji">✨</span>
 										<span className="element-name">Spirit</span>
-										<span className="element-percent">{elementalProfile.spirit.toFixed(1)}%</span>
+										<span className="element-percent">{Math.round(elementalProfile.spirit)}%</span>
 										<div className="element-bar-mini"></div>
 									</div>
 								)}
