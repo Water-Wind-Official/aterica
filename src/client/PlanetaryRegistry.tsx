@@ -174,6 +174,21 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		}
 	};
 
+	const getElementBreakdown = (profile: ElementalProfile, element: Element): string => {
+		const elementKey = element.toLowerCase() as "fire" | "earth" | "air" | "water" | "spirit";
+		const total = profile[elementKey];
+		
+		const parts: string[] = [];
+		profile.breakdown.forEach(component => {
+			const componentValue = component[elementKey];
+			if (componentValue > 0) {
+				parts.push(`${component.source} (${component.weight}%): ${componentValue.toFixed(1)}%`);
+			}
+		});
+		
+		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal: ${total.toFixed(1)}%`;
+	};
+
 	const formatDateInput = (date: Date): string => {
 		const year = date.getFullYear();
 		const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -321,57 +336,78 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 							
 							{/* Final Composition - Compact Grid */}
 							<div className="elemental-composition-grid">
-								<div className="element-compact" style={{ "--percent": `${elementalProfile.fire}%`, "--color": "#ef4444" } as React.CSSProperties}>
+								<div 
+									className="element-compact" 
+									style={{ "--percent": `${elementalProfile.fire}%`, "--color": "#ef4444" } as React.CSSProperties}
+									onMouseEnter={(e) => {
+										const breakdown = getElementBreakdown(elementalProfile, "Fire");
+										showTooltip(breakdown, e);
+									}}
+									onMouseLeave={hideTooltip}
+								>
 									<span className="element-emoji">🔥</span>
 									<span className="element-name">Fire</span>
 									<span className="element-percent">{elementalProfile.fire.toFixed(1)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
-								<div className="element-compact" style={{ "--percent": `${elementalProfile.earth}%`, "--color": "#84cc16" } as React.CSSProperties}>
+								<div 
+									className="element-compact" 
+									style={{ "--percent": `${elementalProfile.earth}%`, "--color": "#84cc16" } as React.CSSProperties}
+									onMouseEnter={(e) => {
+										const breakdown = getElementBreakdown(elementalProfile, "Earth");
+										showTooltip(breakdown, e);
+									}}
+									onMouseLeave={hideTooltip}
+								>
 									<span className="element-emoji">🌍</span>
 									<span className="element-name">Earth</span>
 									<span className="element-percent">{elementalProfile.earth.toFixed(1)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
-								<div className="element-compact" style={{ "--percent": `${elementalProfile.air}%`, "--color": "#3b82f6" } as React.CSSProperties}>
+								<div 
+									className="element-compact" 
+									style={{ "--percent": `${elementalProfile.air}%`, "--color": "#3b82f6" } as React.CSSProperties}
+									onMouseEnter={(e) => {
+										const breakdown = getElementBreakdown(elementalProfile, "Air");
+										showTooltip(breakdown, e);
+									}}
+									onMouseLeave={hideTooltip}
+								>
 									<span className="element-emoji">💨</span>
 									<span className="element-name">Air</span>
 									<span className="element-percent">{elementalProfile.air.toFixed(1)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
-								<div className="element-compact" style={{ "--percent": `${elementalProfile.water}%`, "--color": "#06b6d4" } as React.CSSProperties}>
+								<div 
+									className="element-compact" 
+									style={{ "--percent": `${elementalProfile.water}%`, "--color": "#06b6d4" } as React.CSSProperties}
+									onMouseEnter={(e) => {
+										const breakdown = getElementBreakdown(elementalProfile, "Water");
+										showTooltip(breakdown, e);
+									}}
+									onMouseLeave={hideTooltip}
+								>
 									<span className="element-emoji">💧</span>
 									<span className="element-name">Water</span>
 									<span className="element-percent">{elementalProfile.water.toFixed(1)}%</span>
 									<div className="element-bar-mini"></div>
 								</div>
 								{elementalProfile.spirit > 0 && (
-									<div className="element-compact" style={{ "--percent": `${elementalProfile.spirit}%`, "--color": "#a855f7" } as React.CSSProperties}>
+									<div 
+										className="element-compact" 
+										style={{ "--percent": `${elementalProfile.spirit}%`, "--color": "#a855f7" } as React.CSSProperties}
+										onMouseEnter={(e) => {
+											const breakdown = getElementBreakdown(elementalProfile, "Spirit");
+											showTooltip(breakdown, e);
+										}}
+										onMouseLeave={hideTooltip}
+									>
 										<span className="element-emoji">✨</span>
 										<span className="element-name">Spirit</span>
 										<span className="element-percent">{elementalProfile.spirit.toFixed(1)}%</span>
 										<div className="element-bar-mini"></div>
 									</div>
 								)}
-							</div>
-
-							{/* Compact Breakdown */}
-							<div className="breakdown-compact">
-								{elementalProfile.breakdown.map((component, idx) => (
-									<div key={idx} className="breakdown-item">
-										<div className="breakdown-label-compact">
-											<span className="breakdown-name">{component.source}</span>
-											<span className="breakdown-weight-badge">{component.weight}%</span>
-										</div>
-										<div className="breakdown-elements-compact">
-											{component.fire > 0 && <span className="breakdown-element-tag" style={{ backgroundColor: "rgba(239, 68, 68, 0.2)", color: "#ef4444" }}>🔥 {component.fire.toFixed(1)}%</span>}
-											{component.earth > 0 && <span className="breakdown-element-tag" style={{ backgroundColor: "rgba(132, 204, 22, 0.2)", color: "#84cc16" }}>🌍 {component.earth.toFixed(1)}%</span>}
-											{component.air > 0 && <span className="breakdown-element-tag" style={{ backgroundColor: "rgba(59, 130, 246, 0.2)", color: "#3b82f6" }}>💨 {component.air.toFixed(1)}%</span>}
-											{component.water > 0 && <span className="breakdown-element-tag" style={{ backgroundColor: "rgba(6, 182, 212, 0.2)", color: "#06b6d4" }}>💧 {component.water.toFixed(1)}%</span>}
-											{component.spirit > 0 && <span className="breakdown-element-tag" style={{ backgroundColor: "rgba(168, 85, 247, 0.2)", color: "#a855f7" }}>✨ {component.spirit.toFixed(1)}%</span>}
-										</div>
-									</div>
-								))}
 							</div>
 						</div>
 					)}
