@@ -343,7 +343,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										className="weather-button"
 										onClick={() => setWeatherDropdownOpen(!weatherDropdownOpen)}
 									>
-										{selectedWeather ? `Weather: ${selectedWeather}` : "Select Weather"} {weatherDropdownOpen ? "▲" : "▼"}
+										{selectedWeather || "Select Weather"} {weatherDropdownOpen ? "▲" : "▼"}
 									</button>
 									{weatherDropdownOpen && (
 										<div className="weather-dropdown">
@@ -363,7 +363,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												Clear (+16 Earth)
+												Clear
 											</button>
 											<button 
 												className={`weather-option ${selectedWeather === "Sunny" ? "selected" : ""}`}
@@ -372,7 +372,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												Sunny (+16 Fire)
+												Sunny
 											</button>
 											<button 
 												className={`weather-option ${selectedWeather === "Windy" ? "selected" : ""}`}
@@ -381,7 +381,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												Windy (+22 Air)
+												Windy
 											</button>
 											<button 
 												className={`weather-option ${selectedWeather === "Drizzle" ? "selected" : ""}`}
@@ -390,7 +390,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												Drizzle (+16 Water)
+												Drizzle
 											</button>
 											<button 
 												className={`weather-option ${selectedWeather === "Rainstorm" ? "selected" : ""}`}
@@ -399,7 +399,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												Rainstorm (+22 Water, +22 Air)
+												Rainstorm
 											</button>
 											<button 
 												className={`weather-option ${selectedWeather === "ThunderStorm" ? "selected" : ""}`}
@@ -408,7 +408,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 													setWeatherDropdownOpen(false);
 												}}
 											>
-												ThunderStorm (+22 Water, +22 Air, +11 Fire)
+												ThunderStorm
 											</button>
 										</div>
 									)}
