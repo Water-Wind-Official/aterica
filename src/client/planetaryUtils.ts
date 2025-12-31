@@ -98,7 +98,7 @@ const PLANETARY_DIGNITIES: Record<Planet, {
 };
 
 // Zodiac signs in order (0° = Aries, 30° = Taurus, etc.)
-const ZODIAC_SIGNS: ZodiacSign[] = [
+export const ZODIAC_SIGNS: ZodiacSign[] = [
 	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
 	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
