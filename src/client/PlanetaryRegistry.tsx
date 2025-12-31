@@ -44,6 +44,8 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
+	const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
+	const [weatherDropdownOpen, setWeatherDropdownOpen] = useState(false);
 
 	// Try to get location from browser on mount
 	useEffect(() => {
@@ -88,7 +90,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		Promise.all([
 			getAllPlanetaryDignities(dateTime),
 			getUpcomingEvents(dateTime, 365),
-			location ? calculateElementalProfile(dateTime, location) : Promise.resolve(null),
+			location ? calculateElementalProfile(dateTime, location, selectedWeather) : Promise.resolve(null),
 		])
 			.then((results) => {
 				const allDignities = results[0] as PlanetaryDignity[];
@@ -108,7 +110,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				setError(err.message || "Failed to calculate planetary positions");
 				setIsLoading(false);
 			});
-	}, [selectedDate, selectedTime, location]);
+	}, [selectedDate, selectedTime, location, selectedWeather]);
 
 	const showTooltip = (content: string, event: React.MouseEvent) => {
 		setTooltip({
@@ -325,16 +327,93 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 					{/* Elemental Profile Section */}
 					{elementalProfile && (
 						<div className="elemental-profile-section">
-							<h3>
-								Elemental Energy Profile{" "}
-								<span 
-									className="info-icon"
-									onMouseEnter={(e) => showTooltip("Combines Planetary Positions (50%), Planetary Hour (30%), and Tattva (20%)", e)}
-									onMouseLeave={hideTooltip}
-								>
-									ℹ️
-								</span>
-							</h3>
+							<div className="elemental-profile-header">
+								<h3>
+									Elemental Energy Profile{" "}
+									<span 
+										className="info-icon"
+										onMouseEnter={(e) => showTooltip("Combines Planetary Positions, Planetary Hour, Tattva, Constants, Latitude, Time, Season, and Weather", e)}
+										onMouseLeave={hideTooltip}
+									>
+										ℹ️
+									</span>
+								</h3>
+								<div className="weather-selector">
+									<button 
+										className="weather-button"
+										onClick={() => setWeatherDropdownOpen(!weatherDropdownOpen)}
+									>
+										{selectedWeather ? `Weather: ${selectedWeather}` : "Select Weather"} {weatherDropdownOpen ? "▲" : "▼"}
+									</button>
+									{weatherDropdownOpen && (
+										<div className="weather-dropdown">
+											<button 
+												className={`weather-option ${selectedWeather === null ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather(null);
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												None
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "Clear" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("Clear");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												Clear (+16 Earth)
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "Sunny" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("Sunny");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												Sunny (+16 Fire)
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "Windy" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("Windy");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												Windy (+22 Air)
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "Drizzle" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("Drizzle");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												Drizzle (+16 Water)
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "Rainstorm" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("Rainstorm");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												Rainstorm (+22 Water, +22 Air)
+											</button>
+											<button 
+												className={`weather-option ${selectedWeather === "ThunderStorm" ? "selected" : ""}`}
+												onClick={() => {
+													setSelectedWeather("ThunderStorm");
+													setWeatherDropdownOpen(false);
+												}}
+											>
+												ThunderStorm (+22 Water, +22 Air, +11 Fire)
+											</button>
+										</div>
+									)}
+								</div>
+							</div>
 							
 							{/* Final Composition - Compact Grid */}
 							<div className="elemental-composition-grid">

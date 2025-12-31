@@ -109,7 +109,7 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season";
+	source: "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather";
 	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
@@ -526,7 +526,8 @@ function tattvaToElement(tattva: Tattva): Element {
 // Start at 0, add buffs from various sources, convert to percentages
 export async function calculateElementalProfile(
 	date: Date,
-	location: Location
+	location: Location,
+	weather: string | null = null
 ): Promise<ElementalProfile> {
 	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
 	
@@ -586,6 +587,7 @@ export async function calculateElementalProfile(
 	buffs.earth += 18; // We're on Earth
 	buffs.water += 5;  // Surrounded by water
 	buffs.air += 10;   // Surrounded by air
+	buffs.fire += 5;   // Constant fire presence
 	
 	// 5. Latitude-based Buffs (mutually exclusive: fire at equator, water at poles, 0 at 45°)
 	const latitude = Math.abs(location.latitude); // Use absolute value (works for both hemispheres)
@@ -705,12 +707,12 @@ export async function calculateElementalProfile(
 	breakdown.push({
 		source: "Constants",
 		weight: 0,
-		fire: 0,
+		fire: 5,
 		earth: 18,
 		air: 10,
 		water: 5,
 		spirit: 0,
-		details: "Earth (+18), Air (+10), Water (+5)",
+		details: "Earth (+18), Air (+10), Fire (+5), Water (+5)",
 	});
 	
 	// Latitude breakdown
@@ -756,6 +758,44 @@ export async function calculateElementalProfile(
 		spirit: 0,
 		details: `Current Season: ${season}`,
 	});
+	
+	// Weather breakdown
+	if (weather) {
+		const weatherBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
+		switch (weather) {
+			case "Clear":
+				weatherBuffs.earth = 16;
+				break;
+			case "Sunny":
+				weatherBuffs.fire = 16;
+				break;
+			case "Windy":
+				weatherBuffs.air = 22;
+				break;
+			case "Drizzle":
+				weatherBuffs.water = 16;
+				break;
+			case "Rainstorm":
+				weatherBuffs.water = 22;
+				weatherBuffs.air = 22;
+				break;
+			case "ThunderStorm":
+				weatherBuffs.water = 22;
+				weatherBuffs.air = 22;
+				weatherBuffs.fire = 11;
+				break;
+		}
+		breakdown.push({
+			source: "Weather",
+			weight: 0,
+			fire: weatherBuffs.fire,
+			earth: weatherBuffs.earth,
+			air: weatherBuffs.air,
+			water: weatherBuffs.water,
+			spirit: 0,
+			details: `Weather: ${weather}`,
+		});
+	}
 	
 	profile.breakdown = breakdown;
 	

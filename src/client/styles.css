@@ -476,6 +476,74 @@ a {
 	gap: 10px;
 }
 
+.elemental-profile-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 20px;
+	flex-wrap: wrap;
+	gap: 15px;
+}
+
+.weather-selector {
+	position: relative;
+}
+
+.weather-button {
+	background: rgba(255, 255, 255, 0.1);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 6px;
+	padding: 8px 16px;
+	color: white;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.weather-button:hover {
+	background: rgba(255, 255, 255, 0.15);
+	border-color: rgba(255, 255, 255, 0.3);
+}
+
+.weather-dropdown {
+	position: absolute;
+	top: 100%;
+	right: 0;
+	margin-top: 5px;
+	background: #1a1a1a;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-radius: 6px;
+	padding: 5px;
+	min-width: 220px;
+	z-index: 1000;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.weather-option {
+	display: block;
+	width: 100%;
+	text-align: left;
+	background: transparent;
+	border: none;
+	border-radius: 4px;
+	padding: 10px 12px;
+	color: #ccc;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.weather-option:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: white;
+}
+
+.weather-option.selected {
+	background: rgba(59, 130, 246, 0.2);
+	color: #3b82f6;
+	font-weight: 600;
+}
+
 .elemental-profile-section h4 {
 	color: white;
 	font-size: 1.2rem;
