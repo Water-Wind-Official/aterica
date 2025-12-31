@@ -89,57 +89,28 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 	};
 
 	// Render zodiac signs around the outer ring
-	// Signs are positioned based on their actual positions in the chart
+	// Signs are positioned at their natural zodiac positions (0° Aries, 30° Taurus, etc.)
+	// The chart is rotated so the Ascendant is at the left, so signs are positioned relative to that
 	const zodiacSigns = useMemo(() => {
-		if (!houseCusps) {
-			// Fallback: show signs at equal intervals
-			return ZODIAC_SIGNS.map((sign, index) => {
-				const signAngle = longitudeToAngle(index * 30);
-				const [x, y] = angleToCoords(signAngle, outerRadius - 15);
-				const element = SIGN_ELEMENTS[sign];
-				const color = getElementColor(element);
-
-				return (
-					<g key={sign}>
-						<text
-							x={x}
-							y={y}
-							textAnchor="middle"
-							dominantBaseline="middle"
-							fill={color}
-							fontSize="11"
-							fontWeight="bold"
-						>
-							{getSignAbbr(sign)}
-						</text>
-					</g>
-				);
-			});
-		}
-
-		// Show signs at their actual positions based on house cusps
-		const signPositions: { sign: ZodiacSign; angle: number }[] = [];
-		houseCusps.houses.forEach((cusp, houseIndex) => {
-			const signIndex = Math.floor(cusp / 30) % 12;
-			const sign = ZODIAC_SIGNS[signIndex];
-			const angle = longitudeToAngle(cusp);
-			signPositions.push({ sign, angle });
-		});
-
-		return signPositions.map(({ sign, angle }, index) => {
+		return ZODIAC_SIGNS.map((sign, index) => {
+			// Each sign starts at index * 30 degrees (0° Aries, 30° Taurus, etc.)
+			// Position the sign label at the middle of each sign (15° into each sign)
+			const signStartLongitude = index * 30;
+			const signMidLongitude = signStartLongitude + 15; // Middle of the sign
+			const angle = longitudeToAngle(signMidLongitude);
 			const [x, y] = angleToCoords(angle, outerRadius - 15);
 			const element = SIGN_ELEMENTS[sign];
 			const color = getElementColor(element);
 
 			return (
-				<g key={`${sign}-${index}`}>
+				<g key={sign}>
 					<text
 						x={x}
 						y={y}
 						textAnchor="middle"
 						dominantBaseline="middle"
 						fill={color}
-						fontSize="10"
+						fontSize="11"
 						fontWeight="bold"
 					>
 						{getSignAbbr(sign)}
@@ -147,7 +118,7 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 				</g>
 			);
 		});
-	}, [houseCusps]);
+	}, [longitudeToAngle, angleToCoords, outerRadius]);
 
 	// Render house cusps
 	const houseLines = useMemo(() => {
@@ -173,6 +144,68 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 		});
 	}, [houseCusps]);
 
+	// Calculate angular distance between two longitudes (0-180°)
+	const angularDistance = (lon1: number, lon2: number): number => {
+		let diff = Math.abs(lon1 - lon2);
+		if (diff > 180) diff = 360 - diff;
+		return diff;
+	};
+
+	// Calculate angular distance between two longitudes (0-180°)
+	const angularDistance = (lon1: number, lon2: number): number => {
+		let diff = Math.abs(lon1 - lon2);
+		if (diff > 180) diff = 360 - diff;
+		return diff;
+	};
+
+	// Render aspect lines between planets
+	const aspectLines = useMemo(() => {
+		const lines: JSX.Element[] = [];
+		const aspectTolerance = 8; // degrees tolerance for aspects
+		
+		// Major aspects: Conjunction (0°), Sextile (60°), Square (90°), Trine (120°), Opposition (180°)
+		const aspects = [
+			{ angle: 0, name: 'Conjunction', color: '#888', strokeWidth: 0.3 },
+			{ angle: 60, name: 'Sextile', color: '#666', strokeWidth: 0.3 },
+			{ angle: 90, name: 'Square', color: '#666', strokeWidth: 0.3 },
+			{ angle: 120, name: 'Trine', color: '#666', strokeWidth: 0.3 },
+			{ angle: 180, name: 'Opposition', color: '#888', strokeWidth: 0.3 },
+		];
+
+		for (let i = 0; i < dignities.length; i++) {
+			for (let j = i + 1; j < dignities.length; j++) {
+				const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
+				
+				// Check each aspect
+				for (const aspect of aspects) {
+					const aspectDist = Math.abs(dist - aspect.angle);
+					if (aspectDist <= aspectTolerance) {
+						const angle1 = longitudeToAngle(dignities[i].longitude);
+						const angle2 = longitudeToAngle(dignities[j].longitude);
+						const [x1, y1] = angleToCoords(angle1, planetRadius);
+						const [x2, y2] = angleToCoords(angle2, planetRadius);
+						
+						lines.push(
+							<line
+								key={`aspect-${i}-${j}-${aspect.angle}`}
+								x1={x1}
+								y1={y1}
+								x2={x2}
+								y2={y2}
+								stroke={aspect.color}
+								strokeWidth={aspect.strokeWidth}
+								opacity="0.3"
+							/>
+						);
+						break; // Only draw one aspect line per pair
+					}
+				}
+			}
+		}
+		
+		return lines;
+	}, [dignities]);
+
 	// Render planets
 	const planets = useMemo(() => {
 		return dignities.map((dignity) => {
@@ -184,8 +217,14 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 			return (
 				<g 
 					key={dignity.planet}
-					onMouseEnter={(e) => onPlanetHover?.(dignity, e)}
-					onMouseLeave={(e) => onPlanetHover?.(null, e)}
+					onMouseEnter={(e) => {
+						e.stopPropagation();
+						onPlanetHover?.(dignity, e);
+					}}
+					onMouseLeave={(e) => {
+						e.stopPropagation();
+						onPlanetHover?.(null, e);
+					}}
 					style={{ cursor: 'pointer' }}
 				>
 					<circle
@@ -303,6 +342,9 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 
 						{/* House cusp lines */}
 						{houseLines}
+
+						{/* Aspect lines between planets */}
+						{aspectLines}
 
 						{/* House numbers */}
 						{houseNumbers}

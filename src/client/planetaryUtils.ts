@@ -109,7 +109,7 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather";
+	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather" | "Astrological Events";
 	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
@@ -734,7 +734,8 @@ function tattvaToElement(tattva: Tattva): Element {
 export async function calculateElementalProfile(
 	date: Date,
 	location: Location,
-	weather: string | null = null
+	weather: string | null = null,
+	events: UpcomingEvent[] = []
 ): Promise<ElementalProfile> {
 	// Get sunrise and sunset for today
 	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
@@ -851,6 +852,54 @@ export async function calculateElementalProfile(
 		buffs.water += 14;
 	}
 	
+	// 6. Event-based Buffs (check if events are happening at the current time)
+	events.forEach(event => {
+		const eventDate = new Date(event.date);
+		const dayDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+		const hourDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60);
+		
+		// Check if event is happening based on event type
+		let isHappening = false;
+		if (event.type === "Solstice" || event.type === "Equinox") {
+			isHappening = dayDiff <= 1; // Within 1 day
+		} else if (event.type === "Meteor Shower" || (event.type === "Planetary Alignment" && event.name.toLowerCase().includes("comet"))) {
+			isHappening = dayDiff <= 3; // Within 3 days of peak
+		} else if (event.type === "Eclipse" || event.type === "Planetary Alignment") {
+			isHappening = hourDiff <= 24; // Within 24 hours
+		}
+		
+		if (isHappening) {
+			switch (event.type) {
+				case "Meteor Shower":
+					// Meteor showers and comets both give +11 fire
+					buffs.fire += 11;
+					break;
+				case "Equinox":
+					buffs.earth += 20;
+					break;
+				case "Eclipse":
+					// Check if it's solar or lunar eclipse based on name
+					if (event.name.toLowerCase().includes("solar")) {
+						buffs.water += 18;
+						buffs.fire -= 18;
+					} else if (event.name.toLowerCase().includes("lunar")) {
+						buffs.water -= 18;
+						buffs.fire += 4;
+					}
+					break;
+				case "Solstice":
+					buffs.earth += 11;
+					// Check if it's summer or winter solstice
+					if (event.name.toLowerCase().includes("summer")) {
+						buffs.fire += 6;
+					} else if (event.name.toLowerCase().includes("winter")) {
+						buffs.water += 6;
+					}
+					break;
+			}
+		}
+	});
+	
 	// 7. Season-based Buffs (+16 for current season)
 	const season = getSeason(date, location.latitude);
 	switch (season) {
@@ -913,6 +962,73 @@ export async function calculateElementalProfile(
 	
 	// Calculate breakdown for display
 	const breakdown: ElementalBreakdown[] = [];
+	
+	// Event-based buffs breakdown
+	const eventBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
+	const activeEvents: string[] = [];
+	events.forEach(event => {
+		const eventDate = new Date(event.date);
+		const dayDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+		const hourDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60);
+		
+		let isHappening = false;
+		if (event.type === "Solstice" || event.type === "Equinox") {
+			isHappening = dayDiff <= 1;
+		} else if (event.type === "Meteor Shower" || (event.type === "Planetary Alignment" && event.name.toLowerCase().includes("comet"))) {
+			isHappening = dayDiff <= 3;
+		} else if (event.type === "Eclipse" || event.type === "Planetary Alignment") {
+			isHappening = hourDiff <= 24;
+		}
+		
+		if (isHappening) {
+			activeEvents.push(event.name);
+			switch (event.type) {
+				case "Meteor Shower":
+					// Meteor showers and comets both give +11 fire
+					eventBuffs.fire += 11;
+					break;
+				case "Planetary Alignment":
+					// Check if it's a comet
+					if (event.name.toLowerCase().includes("comet")) {
+						eventBuffs.fire += 11;
+					}
+					break;
+				case "Equinox":
+					eventBuffs.earth += 20;
+					break;
+				case "Eclipse":
+					if (event.name.toLowerCase().includes("solar")) {
+						eventBuffs.water += 18;
+						eventBuffs.fire -= 18;
+					} else if (event.name.toLowerCase().includes("lunar")) {
+						eventBuffs.water -= 18;
+						eventBuffs.fire += 4;
+					}
+					break;
+				case "Solstice":
+					eventBuffs.earth += 11;
+					if (event.name.toLowerCase().includes("summer")) {
+						eventBuffs.fire += 6;
+					} else if (event.name.toLowerCase().includes("winter")) {
+						eventBuffs.water += 6;
+					}
+					break;
+			}
+		}
+	});
+	
+	if (activeEvents.length > 0) {
+		breakdown.push({
+			source: "Astrological Events",
+			weight: 0,
+			fire: eventBuffs.fire,
+			earth: eventBuffs.earth,
+			air: eventBuffs.air,
+			water: eventBuffs.water,
+			spirit: 0,
+			details: activeEvents.join(", "),
+		});
+	}
 	
 	// Planetary Positions breakdown
 	const positionBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
@@ -1431,10 +1547,14 @@ export async function calculateHouseCusps(
 	}
 	
 	// Extract house cusps (indices 1-12, index 0 is not used)
+	// Swiss Ephemeris returns cusps in ecliptic longitude (0-360°)
 	const houses: number[] = [];
 	for (let i = 1; i <= 12; i++) {
-		if (cusps[i] !== undefined && cusps[i] !== null) {
-			houses.push(cusps[i]);
+		if (cusps[i] !== undefined && cusps[i] !== null && !isNaN(cusps[i])) {
+			// Normalize to 0-360 range
+			let cusp = cusps[i] % 360;
+			if (cusp < 0) cusp += 360;
+			houses.push(cusp);
 		} else {
 			// Fallback: calculate approximate houses if Swiss Ephemeris fails
 			houses.push((i - 1) * 30);
@@ -1442,8 +1562,23 @@ export async function calculateHouseCusps(
 	}
 	
 	// Extract Ascendant (index 0) and MC (index 1)
-	const ascendant = (ascmc && ascmc[0] !== undefined) ? ascmc[0] : houses[0] || 0;
-	const mc = (ascmc && ascmc[1] !== undefined) ? ascmc[1] : houses[9] || 0;
+	// Normalize to 0-360 range
+	let ascendant = 0;
+	let mc = 0;
+	
+	if (ascmc && ascmc.length > 0 && ascmc[0] !== undefined && !isNaN(ascmc[0])) {
+		ascendant = ascmc[0] % 360;
+		if (ascendant < 0) ascendant += 360;
+	} else if (houses.length > 0) {
+		ascendant = houses[0]; // Use 1st house cusp as fallback
+	}
+	
+	if (ascmc && ascmc.length > 1 && ascmc[1] !== undefined && !isNaN(ascmc[1])) {
+		mc = ascmc[1] % 360;
+		if (mc < 0) mc += 360;
+	} else if (houses.length > 9) {
+		mc = houses[9]; // Use 10th house cusp as fallback
+	}
 	
 	return {
 		houses,

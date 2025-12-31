@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
 	getAllPlanetaryDignities, 
 	getDayRuler, 
@@ -107,7 +107,10 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		Promise.all([
 			getAllPlanetaryDignities(dateTime),
 			getUpcomingEvents(dateTime, 365),
-			location ? calculateElementalProfile(dateTime, location, selectedWeather) : Promise.resolve(null),
+			location ? (async () => {
+				const events = await getUpcomingEvents(dateTime, 365);
+				return calculateElementalProfile(dateTime, location, selectedWeather, events);
+			})() : Promise.resolve(null),
 		])
 			.then((results) => {
 				const allDignities = results[0] as PlanetaryDignity[];
@@ -151,6 +154,16 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const hideTooltip = () => {
 		setTooltip({ show: false, content: "", x: 0, y: 0 });
 	};
+
+	// Memoize planet hover handler to prevent re-renders
+	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, event: React.MouseEvent) => {
+		if (planet) {
+			const details = `${planet.planet} in ${planet.sign} (${SIGN_ELEMENTS[planet.sign]}) - ${planet.dignity}${planet.isRetrograde ? ' (Retrograde)' : ''}`;
+			showTooltip(details, event);
+		} else {
+			hideTooltip();
+		}
+	}, []);
 
 	const getScoreColor = (score: number): string => {
 		if (score >= 4) return "#4ade80";
@@ -749,7 +762,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										>
 										<div className="event-header">
 											<span className="event-type">{event.type}</span>
-											<span className="event-date">{formatEventDate(event.date)}</span>
+											<span className="event-date">{formatEventDateWithDuration(event)}</span>
 										</div>
 										<h4 className="event-name">
 											{event.name}
@@ -776,14 +789,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								return dateTime;
 							})()}
 							location={location}
-							onPlanetHover={(planet, event) => {
-								if (planet) {
-									const details = `${planet.planet} in ${planet.sign} (${SIGN_ELEMENTS[planet.sign]}) - ${planet.dignity}${planet.isRetrograde ? ' (Retrograde)' : ''}`;
-									showTooltip(details, event);
-								} else {
-									hideTooltip();
-								}
-							}}
+							onPlanetHover={handlePlanetHover}
 						/>
 					)}
 
