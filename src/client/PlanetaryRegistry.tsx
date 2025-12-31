@@ -7,6 +7,9 @@ import {
 	getUpcomingEvents,
 	calculateElementalProfile,
 	zipCodeToLocation,
+	calculateHouseCusps,
+	longitudeToSign,
+	ZODIAC_SIGNS,
 	SIGN_ELEMENTS,
 	type PlanetaryDignity, 
 	type Planet,
@@ -16,6 +19,7 @@ import {
 	type ElementalProfile,
 	type Location,
 	type ZodiacSign,
+	type HouseCusps,
 } from "./planetaryUtils";
 import { NatalChartWheel } from "./NatalChartWheel";
 
@@ -43,6 +47,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [elementalProfile, setElementalProfile] = useState<ElementalProfile | null>(null);
 	const [dayRuler, setDayRuler] = useState<Planet>("Sun");
 	const [hourRuler, setHourRuler] = useState<Planet>("Sun");
+	const [houseCusps, setHouseCusps] = useState<HouseCusps | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
@@ -112,16 +117,19 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				const events = await getUpcomingEvents(dateTime, 365);
 				return calculateElementalProfile(dateTime, location, selectedWeather, events);
 			})() : Promise.resolve(null),
+			location ? calculateHouseCusps(dateTime, location.latitude, location.longitude) : Promise.resolve(null),
 		])
 			.then((results) => {
 				const allDignities = results[0] as PlanetaryDignity[];
 				const events = results[1] as UpcomingEvent[];
 				const profile = results[2] as ElementalProfile | null;
+				const cusps = results[3] as HouseCusps | null;
 
 				setDignities(allDignities);
 				setAlignments(detectAlignments(allDignities));
 				setUpcomingEvents(events);
 				setElementalProfile(profile);
+				setHouseCusps(cusps);
 				
 				// Always calculate day ruler from the actual date/time
 				const dayRuler = getDayRuler(dateTime);
@@ -252,6 +260,59 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const tooltipContent = `${alignmentInfo}\n\nPlanets Involved:\n\n${planetInfo}`;
 		showTooltip(tooltipContent, event);
 	}, [showTooltip]);
+
+	// Helper to get house for a longitude
+	const getHouseForLongitude = useCallback((longitude: number): number | null => {
+		if (!houseCusps) return null;
+		
+		let normalizedLon = longitude % 360;
+		if (normalizedLon < 0) normalizedLon += 360;
+		
+		for (let i = 0; i < 12; i++) {
+			const cusp1 = houseCusps.houses[i];
+			const cusp2 = houseCusps.houses[(i + 1) % 12];
+			
+			if (i === 11) {
+				if (normalizedLon >= cusp1 || normalizedLon < cusp2) {
+					return i + 1;
+				}
+			} else {
+				if (normalizedLon >= cusp1 && normalizedLon < cusp2) {
+					return i + 1;
+				}
+			}
+		}
+		
+		return null;
+	}, [houseCusps]);
+
+	// Get sign description (simplified)
+	const getSignDescription = (sign: ZodiacSign): string => {
+		const descriptions: Record<ZodiacSign, string> = {
+			Aries: "assertive, pioneering, independent",
+			Taurus: "stable, sensual, practical",
+			Gemini: "curious, communicative, adaptable",
+			Cancer: "nurturing, emotional, protective",
+			Leo: "creative, confident, expressive",
+			Virgo: "analytical, service-oriented, detail-focused",
+			Libra: "harmonious, diplomatic, relationship-oriented",
+			Scorpio: "intense, transformative, secretive",
+			Sagittarius: "adventurous, philosophical, freedom-loving",
+			Capricorn: "ambitious, disciplined, traditional",
+			Aquarius: "innovative, independent, humanitarian",
+			Pisces: "intuitive, compassionate, dreamy",
+		};
+		return descriptions[sign];
+	};
+
+	// Get planet interpretation for zodiac dash (simplified)
+	const getPlanetInterpretationForZodiacDash = (planet: Planet, sign: ZodiacSign, house: number | null, dignity: PlanetaryDignity["dignity"], element: Element): string => {
+		const planetBase = getPlanetMeaning(planet);
+		const signDesc = getSignDescription(sign);
+		const houseDesc = house ? `House ${house}` : "";
+		
+		return `${planetBase}\n\nIn ${sign}: ${signDesc}\n${houseDesc ? `In ${houseDesc}: Influences this area of life.` : ''}\n\nDignity: ${dignity}`;
+	};
 
 	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, interpretation: string | null, event: React.MouseEvent) => {
 		if (planet) {
@@ -964,6 +1025,109 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										<p className="alignment-description">{alignment.description}</p>
 									</div>
 								))}
+							</div>
+						</div>
+					)}
+
+					{/* Zodiac Dash Section */}
+					{houseCusps && dignities.length > 0 && (
+						<div className="zodiac-dash-section">
+							<h3>Zodiac Dash</h3>
+							<div className="zodiac-dash-grid">
+								{ZODIAC_SIGNS.map((sign) => {
+									// Find which houses this sign occupies (signs on house cusps)
+									const housesInSign: number[] = [];
+									for (let i = 0; i < 12; i++) {
+										const cusp = houseCusps.houses[i];
+										const signOfCusp = longitudeToSign(cusp);
+										if (signOfCusp === sign) {
+											housesInSign.push(i + 1);
+										}
+									}
+
+									// Find planets in this sign
+									const planetsInSign = dignities.filter(d => d.sign === sign);
+									
+									// Get element
+									const element = SIGN_ELEMENTS[sign];
+									const elementColor = getElementColor(element);
+
+									// Only show signs that have houses or planets
+									if (housesInSign.length === 0 && planetsInSign.length === 0) {
+										return null;
+									}
+
+									return (
+										<div 
+											key={sign}
+											className="zodiac-dash-card"
+											onMouseEnter={(e) => handleSignHover(sign, e)}
+											onMouseLeave={hideTooltip}
+											style={{ cursor: 'pointer', borderLeft: `3px solid ${elementColor}` }}
+										>
+											<div className="zodiac-dash-header">
+												<span className="zodiac-dash-sign" style={{ color: elementColor }}>
+													{sign}
+												</span>
+												<span className="zodiac-dash-element">{getElementEmoji(element)} {element}</span>
+											</div>
+											
+											{housesInSign.length > 0 && (
+												<div className="zodiac-dash-houses">
+													<span className="zodiac-dash-label">Houses:</span>
+													<span className="zodiac-dash-houses-list">
+														{housesInSign.map((house) => {
+															const houseSuffix = house === 1 ? 'st' : house === 2 ? 'nd' : house === 3 ? 'rd' : 'th';
+															return (
+																<span 
+																	key={house}
+																	className="zodiac-dash-house-badge"
+																	onMouseEnter={(e) => {
+																		e.stopPropagation();
+																		handleHouseHover(house, e);
+																	}}
+																	onMouseLeave={(e) => {
+																		e.stopPropagation();
+																		hideTooltip();
+																	}}
+																>
+																	{house}{houseSuffix}
+																</span>
+															);
+														})}
+													</span>
+												</div>
+											)}
+
+											{planetsInSign.length > 0 && (
+												<div className="zodiac-dash-planets">
+													<span className="zodiac-dash-label">Planets:</span>
+													<span className="zodiac-dash-planets-list">
+														{planetsInSign.map((dignity) => (
+															<span 
+																key={dignity.planet}
+																className="zodiac-dash-planet"
+																onMouseEnter={(e) => {
+																	e.stopPropagation();
+																	const house = getHouseForLongitude(dignity.longitude);
+																	const element = SIGN_ELEMENTS[dignity.sign];
+																	const interpretation = getPlanetInterpretationForZodiacDash(dignity.planet, dignity.sign, house, dignity.dignity, element);
+																	handlePlanetHover(dignity, interpretation, e);
+																}}
+																onMouseLeave={(e) => {
+																	e.stopPropagation();
+																	hideTooltip();
+																}}
+															>
+																{getPlanetEmoji(dignity.planet)} {dignity.planet}
+															</span>
+														))}
+													</span>
+												</div>
+											)}
+										</div>
+									);
+								})}
 							</div>
 						</div>
 					)}

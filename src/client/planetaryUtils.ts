@@ -1247,7 +1247,7 @@ export async function zipCodeToLocation(zipCode: string): Promise<Location | nul
 			`https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&format=json&limit=1`,
 			{
 				headers: {
-					'User-Agent': 'Aterica Planetary App'
+					'User-Agent': 'Atirica Planetary App'
 				}
 			}
 		);

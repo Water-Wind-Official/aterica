@@ -532,6 +532,113 @@ a {
 	gap: 10px;
 }
 
+.zodiac-dash-section {
+	margin: 40px 0;
+	padding: 20px;
+	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+	border-radius: 12px;
+	border: 1px solid #333;
+}
+
+.zodiac-dash-section h3 {
+	color: white;
+	font-size: 1.5rem;
+	margin-bottom: 20px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.zodiac-dash-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+	gap: 16px;
+}
+
+.zodiac-dash-card {
+	padding: 16px;
+	background: rgba(255, 255, 255, 0.03);
+	border-radius: 8px;
+	border: 1px solid #333;
+	transition: all 0.2s ease;
+}
+
+.zodiac-dash-card:hover {
+	background: rgba(255, 255, 255, 0.06);
+	border-color: #555;
+	transform: translateY(-2px);
+}
+
+.zodiac-dash-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #333;
+}
+
+.zodiac-dash-sign {
+	font-size: 1.1rem;
+	font-weight: 600;
+	color: white;
+}
+
+.zodiac-dash-element {
+	font-size: 0.85rem;
+	color: #999;
+}
+
+.zodiac-dash-houses,
+.zodiac-dash-planets {
+	margin-top: 10px;
+	font-size: 0.9rem;
+}
+
+.zodiac-dash-label {
+	color: #aaa;
+	margin-right: 8px;
+}
+
+.zodiac-dash-houses-list,
+.zodiac-dash-planets-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.zodiac-dash-house-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	background: rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	color: #ccc;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.zodiac-dash-house-badge:hover {
+	background: rgba(255, 255, 255, 0.2);
+	color: white;
+}
+
+.zodiac-dash-planet {
+	display: inline-block;
+	padding: 4px 8px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 4px;
+	color: #ccc;
+	font-size: 0.85rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.zodiac-dash-planet:hover {
+	background: rgba(255, 255, 255, 0.15);
+	color: white;
+}
+
 .alignments-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
