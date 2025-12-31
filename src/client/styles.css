@@ -363,19 +363,6 @@ a {
 	gap: 10px;
 }
 
-.natal-chart-layout {
-	display: flex;
-	gap: 20px;
-	flex-wrap: wrap;
-	align-items: flex-start;
-}
-
-@media (min-width: 900px) {
-	.natal-chart-layout {
-		align-items: stretch;
-	}
-}
-
 .natal-chart-container {
 	display: flex;
 	justify-content: center;
@@ -384,7 +371,6 @@ a {
 	background: #0a0a0a;
 	border-radius: 8px;
 	border: 1px solid #222;
-	flex-shrink: 0;
 }
 
 .planet-summary-panel {

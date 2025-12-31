@@ -32,13 +32,13 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 			});
 	}, [date, location]);
 
-	const wheelSize = 500;
+	const wheelSize = 600; // Increased from 500 (20% larger)
 	const centerX = wheelSize / 2;
 	const centerY = wheelSize / 2;
-	const outerRadius = 240;
-	const innerRadius = 180;
-	const houseRadius = 160;
-	const planetRadius = 140;
+	const outerRadius = 288; // Scaled proportionally (240 * 1.2)
+	const innerRadius = 216; // Scaled proportionally (180 * 1.2)
+	const houseRadius = 192; // Scaled proportionally (160 * 1.2)
+	const planetRadius = 168; // Scaled proportionally (140 * 1.2)
 
 	// Convert longitude to angle for natal chart
 	// In Western astrology charts:
@@ -489,8 +489,7 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 					<p>Location required for natal chart calculation</p>
 				</div>
 			) : (
-				<div className="natal-chart-layout">
-					<div className="natal-chart-container">
+				<div className="natal-chart-container">
 						<svg
 						width={wheelSize}
 						height={wheelSize}
@@ -733,66 +732,6 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 							fill="#fff"
 						/>
 					</svg>
-					</div>
-					
-					{/* Planet Summary Panel */}
-					{houseCusps && (
-						<div className="planet-summary-panel">
-							<h4>Planet Positions</h4>
-							<div className="planet-summary-list">
-								{planetSummary.map((planet) => {
-									const signAbbr = getSignAbbr(planet.sign);
-									const elementColor = getElementColor(planet.element);
-									const interpretation = getPlanetInterpretation(
-										planet.planet,
-										planet.sign,
-										planet.house,
-										planet.dignity,
-										planet.element
-									);
-
-									return (
-										<div
-											key={planet.planet}
-											className="planet-summary-item"
-											onMouseEnter={(e) => {
-												if (onPlanetHover) {
-													onPlanetHover(planet, interpretation, e);
-												}
-											}}
-											onMouseLeave={(e) => {
-												if (onPlanetHover) {
-													onPlanetHover(null, null, e);
-												}
-											}}
-											style={{ cursor: 'pointer' }}
-										>
-											<div className="planet-summary-header">
-												<span className="planet-emoji">{getPlanetEmoji(planet.planet)}</span>
-												<span className="planet-name">{planet.planet}</span>
-												{planet.isRetrograde && (
-													<span className="retrograde-indicator" title="Retrograde">R</span>
-												)}
-											</div>
-											<div className="planet-summary-details">
-												<span className="planet-sign" style={{ color: elementColor }}>
-													{signAbbr} {planet.signDeg}°{planet.signMin.toString().padStart(2, '0')}'
-												</span>
-												{planet.house && (
-													<span className="planet-house">House {planet.house}</span>
-												)}
-											</div>
-											<div className="planet-dignity">
-												<span className={`dignity-badge dignity-${planet.dignity.toLowerCase()}`}>
-													{planet.dignity}
-												</span>
-											</div>
-										</div>
-									);
-								})}
-							</div>
-						</div>
-					)}
 				</div>
 			)}
 		</div>
