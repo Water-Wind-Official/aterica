@@ -15,6 +15,7 @@ import {
 	type UpcomingEvent,
 	type ElementalProfile,
 	type Location,
+	type ZodiacSign,
 } from "./planetaryUtils";
 import { NatalChartWheel } from "./NatalChartWheel";
 
@@ -163,6 +164,14 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	}, []);
 
 	// Memoize planet hover handler to prevent re-renders
+	const handleAngularPointHover = useCallback((point: { name: string; description: string; longitude: number; sign: ZodiacSign } | null, event: React.MouseEvent) => {
+		if (point) {
+			showTooltip(point.description, event);
+		} else {
+			hideTooltip();
+		}
+	}, [showTooltip, hideTooltip]);
+
 	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, event: React.MouseEvent) => {
 		if (planet) {
 			// Get detailed information about the planet
@@ -846,6 +855,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 							})()}
 							location={location}
 							onPlanetHover={handlePlanetHover}
+							onAngularPointHover={handleAngularPointHover}
 						/>
 					)}
 

@@ -6,9 +6,10 @@ interface NatalChartWheelProps {
 	date: Date;
 	location: Location | null;
 	onPlanetHover?: (planet: PlanetaryDignity | null, event: React.MouseEvent) => void;
+	onAngularPointHover?: (point: { name: string; description: string; longitude: number; sign: ZodiacSign } | null, event: React.MouseEvent) => void;
 }
 
-export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, location, onPlanetHover }: NatalChartWheelProps) {
+export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, location, onPlanetHover, onAngularPointHover }: NatalChartWheelProps) {
 	const [houseCusps, setHouseCusps] = React.useState<HouseCusps | null>(null);
 	const [isLoadingHouses, setIsLoadingHouses] = React.useState(true);
 
@@ -493,53 +494,149 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 									opacity="0.8"
 								/>
 								{/* Ascendant label */}
-								<text
-									x={angleToCoords(longitudeToAngle(houseCusps.ascendant), outerRadius + 10)[0]}
-									y={angleToCoords(longitudeToAngle(houseCusps.ascendant), outerRadius + 10)[1]}
-									textAnchor="middle"
-									dominantBaseline="middle"
-									fill="#06b6d4"
-									fontSize="10"
-									fontWeight="bold"
+								<g
+									onMouseEnter={(e) => {
+										e.stopPropagation();
+										if (onAngularPointHover) {
+											const ascSign = longitudeToSign(houseCusps.ascendant);
+											const signDegrees = houseCusps.ascendant % 30;
+											const signDeg = Math.floor(signDegrees);
+											const signMin = Math.floor((signDegrees - signDeg) * 60);
+											const totalDeg = Math.floor(houseCusps.ascendant);
+											onAngularPointHover({
+												name: "Ascendant (ASC)",
+												description: `The Ascendant is the 1st house cusp, representing your rising sign and how you present yourself to the world. It's the eastern horizon point at the moment of birth.\n\nLongitude: ${totalDeg}°${signMin.toString().padStart(2, '0')}'\nDegree in Sign: ${signDeg}°${signMin.toString().padStart(2, '0')}' ${ascSign}\nSign: ${ascSign}\nHouse: 1st House Cusp`,
+												longitude: houseCusps.ascendant,
+												sign: ascSign
+											}, e);
+										}
+									}}
+									onMouseLeave={(e) => {
+										e.stopPropagation();
+										onAngularPointHover?.(null, e);
+									}}
+									style={{ cursor: 'pointer' }}
 								>
-									ASC
-								</text>
+									<text
+										x={angleToCoords(longitudeToAngle(houseCusps.ascendant), outerRadius + 10)[0]}
+										y={angleToCoords(longitudeToAngle(houseCusps.ascendant), outerRadius + 10)[1]}
+										textAnchor="middle"
+										dominantBaseline="middle"
+										fill="#06b6d4"
+										fontSize="10"
+										fontWeight="bold"
+									>
+										ASC
+									</text>
+								</g>
 								{/* MC label */}
-								<text
-									x={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius + 10)[0]}
-									y={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius + 10)[1]}
-									textAnchor="middle"
-									dominantBaseline="middle"
-									fill="#ef4444"
-									fontSize="10"
-									fontWeight="bold"
+								<g
+									onMouseEnter={(e) => {
+										e.stopPropagation();
+										if (onAngularPointHover) {
+											const mcSign = longitudeToSign(houseCusps.mc);
+											const signDegrees = houseCusps.mc % 30;
+											const signDeg = Math.floor(signDegrees);
+											const signMin = Math.floor((signDegrees - signDeg) * 60);
+											const totalDeg = Math.floor(houseCusps.mc);
+											onAngularPointHover({
+												name: "Midheaven (MC)",
+												description: `The Midheaven is the 10th house cusp, representing your career, public image, reputation, and life direction. It's the highest point in the sky at the moment of birth.\n\nLongitude: ${totalDeg}°${signMin.toString().padStart(2, '0')}'\nDegree in Sign: ${signDeg}°${signMin.toString().padStart(2, '0')}' ${mcSign}\nSign: ${mcSign}\nHouse: 10th House Cusp`,
+												longitude: houseCusps.mc,
+												sign: mcSign
+											}, e);
+										}
+									}}
+									onMouseLeave={(e) => {
+										e.stopPropagation();
+										onAngularPointHover?.(null, e);
+									}}
+									style={{ cursor: 'pointer' }}
 								>
-									MC
-								</text>
+									<text
+										x={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius + 10)[0]}
+										y={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius + 10)[1]}
+										textAnchor="middle"
+										dominantBaseline="middle"
+										fill="#ef4444"
+										fontSize="10"
+										fontWeight="bold"
+									>
+										MC
+									</text>
+								</g>
 								{/* IC label */}
-								<text
-									x={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[0]}
-									y={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[1]}
-									textAnchor="middle"
-									dominantBaseline="middle"
-									fill="#84cc16"
-									fontSize="10"
-									fontWeight="bold"
+								<g
+									onMouseEnter={(e) => {
+										e.stopPropagation();
+										if (onAngularPointHover) {
+											const icSign = longitudeToSign(houseCusps.ic);
+											const signDegrees = houseCusps.ic % 30;
+											const signDeg = Math.floor(signDegrees);
+											const signMin = Math.floor((signDegrees - signDeg) * 60);
+											const totalDeg = Math.floor(houseCusps.ic);
+											onAngularPointHover({
+												name: "Imum Coeli (IC)",
+												description: `The Imum Coeli is the 4th house cusp, representing your home, family, roots, and private life. It's the lowest point (nadir) in the sky, opposite the Midheaven.\n\nLongitude: ${totalDeg}°${signMin.toString().padStart(2, '0')}'\nDegree in Sign: ${signDeg}°${signMin.toString().padStart(2, '0')}' ${icSign}\nSign: ${icSign}\nHouse: 4th House Cusp`,
+												longitude: houseCusps.ic,
+												sign: icSign
+											}, e);
+										}
+									}}
+									onMouseLeave={(e) => {
+										e.stopPropagation();
+										onAngularPointHover?.(null, e);
+									}}
+									style={{ cursor: 'pointer' }}
 								>
-									IC
-								</text>
+									<text
+										x={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[0]}
+										y={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[1]}
+										textAnchor="middle"
+										dominantBaseline="middle"
+										fill="#84cc16"
+										fontSize="10"
+										fontWeight="bold"
+									>
+										IC
+									</text>
+								</g>
 								{/* Descendant label */}
-								<text
-									x={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[0]}
-									y={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[1]}
-									textAnchor="middle"
-									dominantBaseline="middle"
-									fill="#a855f7"
-									fontSize="10"
-									fontWeight="bold"
+								<g
+									onMouseEnter={(e) => {
+										e.stopPropagation();
+										if (onAngularPointHover) {
+											const dcSign = longitudeToSign(houseCusps.descendant);
+											const signDegrees = houseCusps.descendant % 30;
+											const signDeg = Math.floor(signDegrees);
+											const signMin = Math.floor((signDegrees - signDeg) * 60);
+											const totalDeg = Math.floor(houseCusps.descendant);
+											onAngularPointHover({
+												name: "Descendant (DC)",
+												description: `The Descendant is the 7th house cusp, representing relationships, partnerships, and how you interact with others. It's the western horizon point, opposite the Ascendant.\n\nLongitude: ${totalDeg}°${signMin.toString().padStart(2, '0')}'\nDegree in Sign: ${signDeg}°${signMin.toString().padStart(2, '0')}' ${dcSign}\nSign: ${dcSign}\nHouse: 7th House Cusp`,
+												longitude: houseCusps.descendant,
+												sign: dcSign
+											}, e);
+										}
+									}}
+									onMouseLeave={(e) => {
+										e.stopPropagation();
+										onAngularPointHover?.(null, e);
+									}}
+									style={{ cursor: 'pointer' }}
 								>
-									DC
-								</text>
+									<text
+										x={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[0]}
+										y={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[1]}
+										textAnchor="middle"
+										dominantBaseline="middle"
+										fill="#a855f7"
+										fontSize="10"
+										fontWeight="bold"
+									>
+										DC
+									</text>
+								</g>
 							</>
 						)}
 
