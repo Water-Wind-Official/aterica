@@ -685,13 +685,13 @@ export async function calculateElementalProfile(
 	}
 	
 	// Convert buffs to percentage points and add to base percentages
-	// Clamp between 0% and 100% to keep values reasonable
+	// Allow values to exceed 100% - just display the actual value
 	const profile: ElementalProfile = {
-		fire: Math.max(0, Math.min(100, basePercentages.fire + buffs.fire)),
-		earth: Math.max(0, Math.min(100, basePercentages.earth + buffs.earth)),
-		air: Math.max(0, Math.min(100, basePercentages.air + buffs.air)),
-		water: Math.max(0, Math.min(100, basePercentages.water + buffs.water)),
-		spirit: Math.max(0, Math.min(100, basePercentages.spirit + buffs.spirit)),
+		fire: Math.max(0, basePercentages.fire + buffs.fire),
+		earth: Math.max(0, basePercentages.earth + buffs.earth),
+		air: Math.max(0, basePercentages.air + buffs.air),
+		water: Math.max(0, basePercentages.water + buffs.water),
+		spirit: Math.max(0, basePercentages.spirit + buffs.spirit),
 		planetaryHour: planetaryHour.ruler,
 		tattva,
 		moonSign,
