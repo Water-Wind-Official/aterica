@@ -66,6 +66,9 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			Mars: "♂",
 			Jupiter: "♃",
 			Saturn: "♄",
+			Uranus: "♅",
+			Neptune: "♆",
+			Pluto: "♇",
 		};
 		return emojis[planet];
 	};

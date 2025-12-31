@@ -10,7 +10,10 @@ export type Planet =
 	| "Venus" 
 	| "Mars" 
 	| "Jupiter" 
-	| "Saturn";
+	| "Saturn"
+	| "Uranus"
+	| "Neptune"
+	| "Pluto";
 
 export type ZodiacSign = 
 	| "Aries" 
@@ -43,15 +46,19 @@ const PLANET_NUMBERS: Record<Planet, number> = {
 	Mars: 4,
 	Jupiter: 5,
 	Saturn: 6,
+	Uranus: 7,
+	Neptune: 8,
+	Pluto: 9,
 };
 
-// Essential Dignity tables
-const PLANETARY_DIGNITIES: Record<Planet, {
+// Essential Dignity tables (only for traditional 7 planets)
+// Outer planets (Uranus, Neptune, Pluto) don't have traditional dignity rulerships
+const PLANETARY_DIGNITIES: Partial<Record<Planet, {
 	domiciles: ZodiacSign[];
 	exaltation: ZodiacSign;
 	detriment: ZodiacSign[];
 	fall: ZodiacSign;
-}> = {
+}>> = {
 	Sun: {
 		domiciles: ["Leo"],
 		exaltation: "Aries",
@@ -217,6 +224,21 @@ function calculateDignityScore(
 	let dignity: PlanetaryDignity["dignity"] = "Neutral";
 	let score = 0;
 
+	// Outer planets don't have traditional dignity
+	if (!dignities) {
+		// For outer planets, just apply retrograde penalty if applicable
+		if (isRetrograde) {
+			score = -2;
+		}
+		return {
+			planet,
+			sign,
+			dignity: "Neutral",
+			score,
+			isRetrograde,
+		};
+	}
+
 	// Check Domicile (Home - strongest)
 	if (dignities.domiciles.includes(sign)) {
 		dignity = "Domicile";
@@ -258,7 +280,7 @@ function calculateDignityScore(
 // Get all planets with their current dignity using Swiss Ephemeris
 export async function getAllPlanetaryDignities(date: Date): Promise<PlanetaryDignity[]> {
 	const swe = await initSwissEphemeris();
-	const planets: Planet[] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
+	const planets: Planet[] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
 	
 	const results = await Promise.all(
 		planets.map(async (planet) => {
