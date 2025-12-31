@@ -8,6 +8,7 @@ import usePartySocket from "partysocket/react";
 // The type of messages we'll be receiving from the server
 import type { OutgoingMessage } from "../shared";
 import type { LegacyRef } from "react";
+import { PlanetaryRegistry } from "./PlanetaryRegistry";
 
 function App() {
 	// A reference to the canvas element where we'll render the globe
@@ -105,7 +106,8 @@ function App() {
 				style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
 			/>
 
-
+			{/* Planetary Energy Registry */}
+			<PlanetaryRegistry />
 		</div>
 	);
 }
