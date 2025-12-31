@@ -425,18 +425,20 @@ export async function calculateSunriseSunset(
 
 // Convert Julian Day to Date (local time)
 // Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
-// The Julian Day it returns represents the local time, but in UT format
-// We need to interpret it as local time for the location
+// The Julian Day it returns represents the local solar time for that location
+// We need to create a Date object that represents this time in the browser's local timezone
+// Since we're comparing dates, we'll interpret the result as if it's in the browser's timezone
 async function julianDayToDate(jd: number): Promise<Date> {
 	const swe = await initSwissEphemeris();
 	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
 	const hour = result.hour || 0;
+	const hourInt = Math.floor(hour);
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
-	// Swiss Ephemeris swe_rise_trans with longitude returns local time for that location
-	// but as a UT Julian Day. We interpret the components as local time.
-	// Create Date in local timezone (not UTC) since swe_rise_trans already accounted for longitude
-	return new Date(result.year, result.month - 1, result.day, Math.floor(hour), minute, second);
+	// Swiss Ephemeris swe_rise_trans with longitude returns local solar time for that location
+	// Create Date in browser's local timezone - this ensures all dates are in the same timezone context
+	// for comparison purposes in getPlanetaryHour
+	return new Date(result.year, result.month - 1, result.day, hourInt, minute, second);
 }
 
 // Get Planetary Hour based on sunrise/sunset
@@ -460,9 +462,25 @@ export function getPlanetaryHour(
 	if (isDay) {
 		// Day hours: from sunrise to sunset, divided into 12
 		const dayLength = sunset.getTime() - sunrise.getTime();
-		hourLength = dayLength / 12;
-		timeSinceStart = currentTime.getTime() - sunrise.getTime();
-		startTime = sunrise;
+		if (dayLength <= 0) {
+			// Edge case: no daylight (polar regions during winter)
+			// Fall back to night calculation
+			const nightStart = prevSunset || (() => {
+				const ps = new Date(sunset);
+				ps.setDate(ps.getDate() - 1);
+				return ps;
+			})();
+			const nightEnd = new Date(sunrise);
+			nightEnd.setDate(nightEnd.getDate() + 1);
+			const nightLength = nightEnd.getTime() - nightStart.getTime();
+			hourLength = nightLength / 12;
+			timeSinceStart = currentTime.getTime() - nightStart.getTime();
+			startTime = nightStart;
+		} else {
+			hourLength = dayLength / 12;
+			timeSinceStart = currentTime.getTime() - sunrise.getTime();
+			startTime = sunrise;
+		}
 	} else {
 		// Night hours: from sunset to next sunrise, divided into 12
 		// For night hours, we need to determine which night period we're in
@@ -486,12 +504,32 @@ export function getPlanetaryHour(
 		}
 		
 		const nightLength = nightEnd.getTime() - nightStart.getTime();
-		hourLength = nightLength / 12;
-		timeSinceStart = currentTime.getTime() - nightStart.getTime();
-		startTime = nightStart;
+		if (nightLength <= 0) {
+			// Edge case: no night (polar regions during summer)
+			// Fall back to day calculation
+			const dayLength = sunset.getTime() - sunrise.getTime();
+			hourLength = dayLength > 0 ? dayLength / 12 : 3600000; // Default to 1 hour if still invalid
+			timeSinceStart = currentTime.getTime() - sunrise.getTime();
+			startTime = sunrise;
+		} else {
+			hourLength = nightLength / 12;
+			timeSinceStart = currentTime.getTime() - nightStart.getTime();
+			startTime = nightStart;
+		}
 	}
 	
 	// Calculate which hour we're in (0-11)
+	// Handle edge case where timeSinceStart might be negative due to timezone issues
+	if (timeSinceStart < 0) {
+		// If we're before the start time, we're in the previous period
+		// This shouldn't happen in normal operation, but handle it gracefully
+		timeSinceStart = 0;
+	}
+	// Ensure hourLength is valid (greater than 0)
+	if (hourLength <= 0 || !isFinite(hourLength)) {
+		// Fallback: use 1 hour (3600000 ms) if calculation is invalid
+		hourLength = 3600000;
+	}
 	const hourNumber = Math.floor(timeSinceStart / hourLength);
 	// Clamp to valid range (0-11)
 	const clampedHourNumber = Math.max(0, Math.min(11, hourNumber));
