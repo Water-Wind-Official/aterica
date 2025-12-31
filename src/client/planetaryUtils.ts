@@ -116,9 +116,10 @@ export async function initSwissEphemeris(): Promise<any> {
 	}
 	
 	initPromise = (async () => {
-		// Initialize with the path to the WASM file
-		const wasmPath = "/dist/wasm/swisseph.wasm";
-		const swe = await SwissEPH.init(wasmPath);
+		// Use CDN path - works perfectly for Cloudflare deployments
+		// No need to serve WASM files locally when using CDN
+		const cdnPath = "https://unpkg.com/sweph-wasm@2.6.9/dist/wasm/swisseph.wasm";
+		const swe = await SwissEPH.init(cdnPath);
 		await swe.swe_set_ephe_path(); // Use default ephemeris files from CDN
 		sweInstance = swe;
 		return swe;
