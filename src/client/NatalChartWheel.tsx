@@ -151,13 +151,6 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 		return diff;
 	};
 
-	// Calculate angular distance between two longitudes (0-180°)
-	const angularDistance = (lon1: number, lon2: number): number => {
-		let diff = Math.abs(lon1 - lon2);
-		if (diff > 180) diff = 360 - diff;
-		return diff;
-	};
-
 	// Render aspect lines between planets
 	const aspectLines = useMemo(() => {
 		const lines: JSX.Element[] = [];
