@@ -45,7 +45,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
 	const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
-	const [weatherDropdownOpen, setWeatherDropdownOpen] = useState(false);
 
 	// Try to get location from browser on mount
 	useEffect(() => {
@@ -339,79 +338,51 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 									</span>
 								</h3>
 								<div className="weather-selector">
-									<button 
-										className="weather-button"
-										onClick={() => setWeatherDropdownOpen(!weatherDropdownOpen)}
-									>
-										{selectedWeather || "Select Weather"} {weatherDropdownOpen ? "▲" : "▼"}
-									</button>
-									{weatherDropdownOpen && (
-										<div className="weather-dropdown">
-											<button 
-												className={`weather-option ${selectedWeather === null ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather(null);
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												None
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "Clear" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("Clear");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												Clear
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "Sunny" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("Sunny");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												Sunny
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "Windy" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("Windy");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												Windy
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "Drizzle" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("Drizzle");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												Drizzle
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "Rainstorm" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("Rainstorm");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												Rainstorm
-											</button>
-											<button 
-												className={`weather-option ${selectedWeather === "ThunderStorm" ? "selected" : ""}`}
-												onClick={() => {
-													setSelectedWeather("ThunderStorm");
-													setWeatherDropdownOpen(false);
-												}}
-											>
-												ThunderStorm
-											</button>
-										</div>
-									)}
+									<span className="weather-label">Weather:</span>
+									<div className="weather-buttons">
+										<button 
+											className={`weather-button ${selectedWeather === null ? "selected" : ""}`}
+											onClick={() => setSelectedWeather(null)}
+										>
+											None
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "Clear" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("Clear")}
+										>
+											Clear
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "Sunny" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("Sunny")}
+										>
+											Sunny
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "Windy" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("Windy")}
+										>
+											Windy
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "Drizzle" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("Drizzle")}
+										>
+											Drizzle
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "Rainstorm" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("Rainstorm")}
+										>
+											Rainstorm
+										</button>
+										<button 
+											className={`weather-button ${selectedWeather === "ThunderStorm" ? "selected" : ""}`}
+											onClick={() => setSelectedWeather("ThunderStorm")}
+										>
+											ThunderStorm
+										</button>
+									</div>
 								</div>
 							</div>
 							
