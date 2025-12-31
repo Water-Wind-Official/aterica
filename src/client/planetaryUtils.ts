@@ -370,9 +370,9 @@ export async function calculateSunriseSunset(
 ): Promise<{ sunrise: Date; sunset: Date }> {
 	const swe = await initSwissEphemeris();
 	
-	// Swiss Ephemeris works in UT (Universal Time)
-	// Convert local date to UT for calculation
-	// Get the date at noon UT for the day we're interested in
+	// Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
+	// We need to use the date at noon UT for the day we're interested in
+	// The function will calculate the local sunrise/sunset times based on the longitude
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth() + 1;
 	const day = date.getUTCDate();
@@ -432,10 +432,12 @@ async function julianDayToDate(jd: number): Promise<Date> {
 }
 
 // Get Planetary Hour based on sunrise/sunset
+// For night hours before sunrise, sunset should be yesterday's sunset
 export function getPlanetaryHour(
 	currentTime: Date,
 	sunrise: Date,
-	sunset: Date
+	sunset: Date,
+	prevSunset?: Date
 ): { hour: number; ruler: Planet; isDay: boolean } {
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
@@ -556,9 +558,19 @@ export async function calculateElementalProfile(
 	location: Location,
 	weather: string | null = null
 ): Promise<ElementalProfile> {
+	// Get sunrise and sunset for today
 	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
 	
-	const planetaryHour = getPlanetaryHour(date, sunrise, sunset);
+	// If the time is before sunrise, we also need yesterday's sunset for night hours
+	let prevSunset = sunset;
+	if (date < sunrise) {
+		const prevDate = new Date(date);
+		prevDate.setDate(prevDate.getDate() - 1);
+		const prevDayTimes = await calculateSunriseSunset(prevDate, location.latitude, location.longitude);
+		prevSunset = prevDayTimes.sunset;
+	}
+	
+	const planetaryHour = getPlanetaryHour(date, sunrise, sunset, prevSunset);
 	const tattva = getTattva(date, sunrise);
 	
 	const tattvaElement = tattvaToElement(tattva);
