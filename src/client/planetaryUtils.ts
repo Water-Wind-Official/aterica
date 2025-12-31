@@ -109,8 +109,8 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Planetary Positions" | "Planetary Hour" | "Tattva";
-	weight: number; // percentage weight (50, 30, 20)
+	source: "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season";
+	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
 	air: number;
@@ -522,8 +522,8 @@ function tattvaToElement(tattva: Tattva): Element {
 	}
 }
 
-// Calculate elemental profile using weighted system:
-// 50% Planetary Positions (cosmic state), 30% Planetary Hour (temporal macro), 20% Tattva (temporal micro)
+// Calculate elemental profile using buff system:
+// Start at 0, add buffs from various sources, convert to percentages
 export async function calculateElementalProfile(
 	date: Date,
 	location: Location
@@ -533,143 +533,280 @@ export async function calculateElementalProfile(
 	const planetaryHour = getPlanetaryHour(date, sunrise, sunset);
 	const tattva = getTattva(date, sunrise);
 	
-	const hourElement = planetToElement(planetaryHour.ruler);
 	const tattvaElement = tattvaToElement(tattva);
 	
-	// Get all planetary positions to calculate cosmic elemental state
+	// Get all planetary positions
 	const dignities = await getAllPlanetaryDignities(date);
-	
-	// Count elements from planetary positions
-	const elementCounts = {
-		fire: 0,
-		earth: 0,
-		air: 0,
-		water: 0,
-	};
-	
-	// Weight planets by importance (traditional rulership)
-	const planetWeights: Record<Planet, number> = {
-		Sun: 2.0,      // Most important
-		Moon: 2.0,     // Most important
-		Mercury: 1.0,
-		Venus: 1.5,
-		Mars: 1.5,
-		Jupiter: 1.5,
-		Saturn: 1.5,
-	};
-	
-	dignities.forEach(dignity => {
-		const element = SIGN_ELEMENTS[dignity.sign];
-		const weight = planetWeights[dignity.planet];
-		
-		switch (element) {
-			case "Fire":
-				elementCounts.fire += weight;
-				break;
-			case "Earth":
-				elementCounts.earth += weight;
-				break;
-			case "Air":
-				elementCounts.air += weight;
-				break;
-			case "Water":
-				elementCounts.water += weight;
-				break;
-		}
-	});
-	
-	// Normalize to percentages (total weight = 12.5)
-	const totalWeight = Object.values(elementCounts).reduce((sum, count) => sum + count, 0);
 	
 	const moonDignity = dignities.find(d => d.planet === "Moon");
 	const moonSign = moonDignity?.sign;
 	
-	const profile: ElementalProfile = {
+	// Start with 0 buffs
+	const buffs = {
 		fire: 0,
 		earth: 0,
 		air: 0,
 		water: 0,
 		spirit: 0,
+	};
+	
+	// 1. Planetary Position Buffs
+	dignities.forEach(dignity => {
+		const element = SIGN_ELEMENTS[dignity.sign];
+		
+		switch (dignity.planet) {
+			case "Sun":
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 18;
+				break;
+			case "Moon":
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 12;
+				break;
+			case "Mercury":
+			case "Venus":
+			case "Mars":
+			case "Jupiter":
+			case "Saturn":
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 8;
+				break;
+		}
+	});
+	
+	// 2. Tattva Hour Buff (+15)
+	if (tattvaElement !== "Spirit") {
+		buffs[tattvaElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 15;
+	}
+	
+	// 3. Planetary Hour Buff (+15) - based on specific mapping
+	const planetaryHourElement = getPlanetaryHourElement(planetaryHour.ruler);
+	if (planetaryHourElement !== "Spirit") {
+		buffs[planetaryHourElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 15;
+	}
+	
+	// 4. Constant Buffs
+	buffs.earth += 18; // We're on Earth
+	buffs.water += 5;  // Surrounded by water
+	buffs.air += 10;   // Surrounded by air
+	
+	// 5. Latitude-based Buffs
+	const latitude = Math.abs(location.latitude); // Use absolute value (works for both hemispheres)
+	let latitudeFireBuff = 0;
+	let latitudeWaterBuff = 0;
+	
+	if (latitude <= 23.5) {
+		// Tropics (0° to 23.5°) - full fire buff
+		latitudeFireBuff = 20;
+	} else if (latitude >= 66.5) {
+		// Polar regions (66.5° to 90°) - full water buff
+		latitudeWaterBuff = 20;
+	} else {
+		// Middle latitudes - interpolate
+		// At 45°: 0 buff for both
+		// Linear interpolation between 23.5° and 45° (fire), and 45° and 66.5° (water)
+		if (latitude < 45) {
+			// Between tropics and 45° - fire buff decreases, water buff increases
+			const ratio = (latitude - 23.5) / (45 - 23.5);
+			latitudeFireBuff = 20 * (1 - ratio);
+			latitudeWaterBuff = 20 * ratio;
+		} else {
+			// Between 45° and polar - water buff increases
+			const ratio = (latitude - 45) / (66.5 - 45);
+			latitudeWaterBuff = 20 * ratio;
+		}
+	}
+	
+	buffs.fire += latitudeFireBuff;
+	buffs.water += latitudeWaterBuff;
+	
+	// 6. Time-based Buffs
+	const hour = date.getHours();
+	// Fire: +20 between 9 AM (9) and 4 PM (16)
+	if (hour >= 9 && hour < 16) {
+		buffs.fire += 20;
+	}
+	// Water: +20 between 8 PM (20) and 3 AM (3)
+	if (hour >= 20 || hour < 3) {
+		buffs.water += 20;
+	}
+	
+	// 7. Season-based Buffs (+16 for current season)
+	const season = getSeason(date, location.latitude);
+	switch (season) {
+		case "Winter":
+			buffs.water += 16;
+			break;
+		case "Fall":
+			buffs.air += 16;
+			break;
+		case "Spring":
+			buffs.earth += 16;
+			break;
+		case "Summer":
+			buffs.fire += 16;
+			break;
+	}
+	
+	// Convert buffs to percentages (sum all buffs, then calculate percentage of total)
+	const totalBuffs = buffs.fire + buffs.earth + buffs.air + buffs.water + buffs.spirit;
+	
+	const profile: ElementalProfile = {
+		fire: totalBuffs > 0 ? (buffs.fire / totalBuffs) * 100 : 0,
+		earth: totalBuffs > 0 ? (buffs.earth / totalBuffs) * 100 : 0,
+		air: totalBuffs > 0 ? (buffs.air / totalBuffs) * 100 : 0,
+		water: totalBuffs > 0 ? (buffs.water / totalBuffs) * 100 : 0,
+		spirit: totalBuffs > 0 ? (buffs.spirit / totalBuffs) * 100 : 0,
 		planetaryHour: planetaryHour.ruler,
 		tattva,
 		moonSign,
 		breakdown: [],
 	};
 	
-	// Calculate breakdown for visual display
+	// Calculate breakdown for display
 	const breakdown: ElementalBreakdown[] = [];
 	
-	// 1. Planetary Positions (50%)
-	if (totalWeight > 0) {
-		const positionsBreakdown: ElementalBreakdown = {
-			source: "Planetary Positions",
-			weight: 50,
-			fire: (elementCounts.fire / totalWeight) * 50,
-			earth: (elementCounts.earth / totalWeight) * 50,
-			air: (elementCounts.air / totalWeight) * 50,
-			water: (elementCounts.water / totalWeight) * 50,
-			spirit: 0,
-			details: dignities.map(d => `${d.planet} in ${d.sign} (${SIGN_ELEMENTS[d.sign]})`).join(", "),
-		};
-		breakdown.push(positionsBreakdown);
-		addElement(profile, "Fire", positionsBreakdown.fire);
-		addElement(profile, "Earth", positionsBreakdown.earth);
-		addElement(profile, "Air", positionsBreakdown.air);
-		addElement(profile, "Water", positionsBreakdown.water);
-	}
+	// Planetary Positions breakdown
+	const positionBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
+	dignities.forEach(dignity => {
+		const element = SIGN_ELEMENTS[dignity.sign];
+		let buff = 0;
+		if (dignity.planet === "Sun") buff = 18;
+		else if (dignity.planet === "Moon") buff = 12;
+		else buff = 8;
+		positionBuffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += buff;
+	});
 	
-	// 2. Planetary Hour (30%)
-	const hourBreakdown: ElementalBreakdown = {
-		source: "Planetary Hour",
-		weight: 30,
-		fire: hourElement === "Fire" ? 30 : 0,
-		earth: hourElement === "Earth" ? 30 : 0,
-		air: hourElement === "Air" ? 30 : 0,
-		water: hourElement === "Water" ? 30 : 0,
-		spirit: hourElement === "Spirit" ? 30 : 0,
-		details: `${planetaryHour.ruler} Hour (${hourElement} element)`,
-	};
-	breakdown.push(hourBreakdown);
-	addElement(profile, hourElement, 30);
+	breakdown.push({
+		source: "Planetary Positions",
+		weight: 0,
+		fire: positionBuffs.fire,
+		earth: positionBuffs.earth,
+		air: positionBuffs.air,
+		water: positionBuffs.water,
+		spirit: 0,
+		details: dignities.map(d => `${d.planet} in ${d.sign} (${SIGN_ELEMENTS[d.sign]})`).join(", "),
+	});
 	
-	// 3. Tattva (20%)
-	const tattvaBreakdown: ElementalBreakdown = {
+	// Tattva breakdown
+	breakdown.push({
 		source: "Tattva",
-		weight: 20,
-		fire: tattvaElement === "Fire" ? 20 : 0,
-		earth: tattvaElement === "Earth" ? 20 : 0,
-		air: tattvaElement === "Air" ? 20 : 0,
-		water: tattvaElement === "Water" ? 20 : 0,
-		spirit: tattvaElement === "Spirit" ? 20 : 0,
+		weight: 0,
+		fire: tattvaElement === "Fire" ? 15 : 0,
+		earth: tattvaElement === "Earth" ? 15 : 0,
+		air: tattvaElement === "Air" ? 15 : 0,
+		water: tattvaElement === "Water" ? 15 : 0,
+		spirit: 0,
 		details: `Current Tattva: ${tattva} (${tattvaElement} element)`,
-	};
-	breakdown.push(tattvaBreakdown);
-	addElement(profile, tattvaElement, 20);
+	});
+	
+	// Planetary Hour breakdown
+	breakdown.push({
+		source: "Planetary Hour",
+		weight: 0,
+		fire: planetaryHourElement === "Fire" ? 15 : 0,
+		earth: planetaryHourElement === "Earth" ? 15 : 0,
+		air: planetaryHourElement === "Air" ? 15 : 0,
+		water: planetaryHourElement === "Water" ? 15 : 0,
+		spirit: 0,
+		details: `${planetaryHour.ruler} Hour (${planetaryHourElement} element)`,
+	});
+	
+	// Constants breakdown
+	breakdown.push({
+		source: "Constants",
+		weight: 0,
+		fire: 0,
+		earth: 18,
+		air: 10,
+		water: 5,
+		spirit: 0,
+		details: "Earth (+18), Air (+10), Water (+5)",
+	});
+	
+	// Latitude breakdown
+	breakdown.push({
+		source: "Latitude",
+		weight: 0,
+		fire: latitudeFireBuff,
+		earth: 0,
+		air: 0,
+		water: latitudeWaterBuff,
+		spirit: 0,
+		details: `Latitude: ${location.latitude.toFixed(2)}°`,
+	});
+	
+	// Time breakdown
+	const timeFireBuff = (hour >= 9 && hour < 16) ? 20 : 0;
+	const timeWaterBuff = (hour >= 20 || hour < 3) ? 20 : 0;
+	breakdown.push({
+		source: "Time of Day",
+		weight: 0,
+		fire: timeFireBuff,
+		earth: 0,
+		air: 0,
+		water: timeWaterBuff,
+		spirit: 0,
+		details: `Hour: ${hour}:00`,
+	});
+	
+	// Season breakdown
+	const seasonBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
+	if (season === "Summer") seasonBuffs.fire = 16;
+	else if (season === "Spring") seasonBuffs.earth = 16;
+	else if (season === "Fall") seasonBuffs.air = 16;
+	else if (season === "Winter") seasonBuffs.water = 16;
+	
+	breakdown.push({
+		source: "Season",
+		weight: 0,
+		fire: seasonBuffs.fire,
+		earth: seasonBuffs.earth,
+		air: seasonBuffs.air,
+		water: seasonBuffs.water,
+		spirit: 0,
+		details: `Current Season: ${season}`,
+	});
 	
 	profile.breakdown = breakdown;
 	
 	return profile;
 }
 
-function addElement(profile: ElementalProfile, element: Element, percentage: number) {
-	switch (element) {
-		case "Fire":
-			profile.fire += percentage;
-			break;
-		case "Earth":
-			profile.earth += percentage;
-			break;
-		case "Air":
-			profile.air += percentage;
-			break;
-		case "Water":
-			profile.water += percentage;
-			break;
-		case "Spirit":
-			profile.spirit += percentage;
-			break;
+// Get planetary hour element based on specific mapping
+function getPlanetaryHourElement(planet: Planet): Element {
+	switch (planet) {
+		case "Sun":
+		case "Mars":
+			return "Fire";
+		case "Jupiter":
+		case "Mercury":
+			return "Air";
+		case "Moon":
+		case "Venus":
+			return "Water";
+		case "Saturn":
+			return "Earth";
 	}
 }
+
+// Get current season based on date and latitude
+function getSeason(date: Date, latitude: number): "Winter" | "Spring" | "Summer" | "Fall" {
+	const month = date.getMonth(); // 0-11
+	const isNorthern = latitude >= 0;
+	
+	if (isNorthern) {
+		// Northern Hemisphere
+		if (month >= 2 && month <= 4) return "Spring"; // Mar, Apr, May
+		if (month >= 5 && month <= 7) return "Summer"; // Jun, Jul, Aug
+		if (month >= 8 && month <= 10) return "Fall"; // Sep, Oct, Nov
+		return "Winter"; // Dec, Jan, Feb
+	} else {
+		// Southern Hemisphere (seasons reversed)
+		if (month >= 2 && month <= 4) return "Fall";
+		if (month >= 5 && month <= 7) return "Winter";
+		if (month >= 8 && month <= 10) return "Spring";
+		return "Summer";
+	}
+}
+
 
 // Simple zip code to lat/long lookup using free geocoding API
 export async function zipCodeToLocation(zipCode: string): Promise<Location | null> {

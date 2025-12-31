@@ -179,14 +179,16 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const total = profile[elementKey];
 		
 		const parts: string[] = [];
+		let totalBuffs = 0;
 		profile.breakdown.forEach(component => {
 			const componentValue = component[elementKey];
-			if (componentValue > 0) {
-				parts.push(`${component.source} (${component.weight}%): ${componentValue.toFixed(1)}%`);
+			if (componentValue !== 0) {
+				totalBuffs += componentValue;
+				parts.push(`${component.source}: +${componentValue.toFixed(0)}`);
 			}
 		});
 		
-		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal: ${total.toFixed(1)}%`;
+		return `${element} Buffs:\n${parts.join("\n")}\n\nTotal Buffs: ${totalBuffs.toFixed(0)}\nFinal Percentage: ${total.toFixed(1)}%`;
 	};
 
 	const formatDateInput = (date: Date): string => {
