@@ -587,31 +587,23 @@ export async function calculateElementalProfile(
 	buffs.water += 5;  // Surrounded by water
 	buffs.air += 10;   // Surrounded by air
 	
-	// 5. Latitude-based Buffs
+	// 5. Latitude-based Buffs (mutually exclusive: fire at equator, water at poles, 0 at 45°)
 	const latitude = Math.abs(location.latitude); // Use absolute value (works for both hemispheres)
 	let latitudeFireBuff = 0;
 	let latitudeWaterBuff = 0;
 	
-	if (latitude <= 23.5) {
-		// Tropics (0° to 23.5°) - full fire buff
-		latitudeFireBuff = 20;
-	} else if (latitude >= 66.5) {
-		// Polar regions (66.5° to 90°) - full water buff
-		latitudeWaterBuff = 20;
+	if (latitude <= 45) {
+		// From equator (0°) to 45° parallel - fire buff decreases linearly
+		// At 0°: +20 fire, 0 water
+		// At 45°: 0 fire, 0 water
+		const ratio = latitude / 45;
+		latitudeFireBuff = 20 * (1 - ratio);
 	} else {
-		// Middle latitudes - interpolate
-		// At 45°: 0 buff for both
-		// Linear interpolation between 23.5° and 45° (fire), and 45° and 66.5° (water)
-		if (latitude < 45) {
-			// Between tropics and 45° - fire buff decreases, water buff increases
-			const ratio = (latitude - 23.5) / (45 - 23.5);
-			latitudeFireBuff = 20 * (1 - ratio);
-			latitudeWaterBuff = 20 * ratio;
-		} else {
-			// Between 45° and polar - water buff increases
-			const ratio = (latitude - 45) / (66.5 - 45);
-			latitudeWaterBuff = 20 * ratio;
-		}
+		// From 45° to poles (90°) - water buff increases linearly
+		// At 45°: 0 fire, 0 water
+		// At 90°: 0 fire, +20 water
+		const ratio = (latitude - 45) / 45;
+		latitudeWaterBuff = 20 * ratio;
 	}
 	
 	buffs.fire += latitudeFireBuff;
