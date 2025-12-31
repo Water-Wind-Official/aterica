@@ -32,6 +32,8 @@
 		"cf-typegen": "wrangler types ./src/server/worker-configuration.d.ts",
 		"check": "tsc --project src/client && tsc --project src/server && wrangler deploy --dry-run",
 		"deploy": "wrangler deploy",
-		"dev": "wrangler dev"
+		"dev": "wrangler dev",
+		"copy-wasm": "node -e \"const fs=require('fs');const path=require('path');const dir='public/dist/wasm';fs.mkdirSync(dir,{recursive:true});fs.copyFileSync(path.join('node_modules','sweph-wasm','dist','wasm','swisseph.wasm'),path.join(dir,'swisseph.wasm'));\"",
+		"predev": "npm run copy-wasm"
 	}
 }

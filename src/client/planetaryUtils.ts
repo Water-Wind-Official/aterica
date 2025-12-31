@@ -116,7 +116,9 @@ export async function initSwissEphemeris(): Promise<any> {
 	}
 	
 	initPromise = (async () => {
-		const swe = await SwissEPH.init();
+		// Initialize with the path to the WASM file
+		const wasmPath = "/dist/wasm/swisseph.wasm";
+		const swe = await SwissEPH.init(wasmPath);
 		await swe.swe_set_ephe_path(); // Use default ephemeris files from CDN
 		sweInstance = swe;
 		return swe;
