@@ -202,7 +202,7 @@ export async function initSwissEphemeris(): Promise<any> {
 }
 
 // Convert longitude (0-360°) to zodiac sign
-function longitudeToSign(longitude: number): ZodiacSign {
+export function longitudeToSign(longitude: number): ZodiacSign {
 	// Normalize to 0-360
 	longitude = longitude % 360;
 	if (longitude < 0) longitude += 360;

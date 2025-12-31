@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from "react";
-import { type PlanetaryDignity, type Planet, type ZodiacSign, ZODIAC_SIGNS, SIGN_ELEMENTS, type HouseCusps, calculateHouseCusps, type Location } from "./planetaryUtils";
+import { type PlanetaryDignity, type Planet, type ZodiacSign, ZODIAC_SIGNS, SIGN_ELEMENTS, type HouseCusps, calculateHouseCusps, type Location, longitudeToSign } from "./planetaryUtils";
 
 interface NatalChartWheelProps {
 	dignities: PlanetaryDignity[];
@@ -330,22 +330,29 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 		return houseCusps.houses.map((cusp, index) => {
 			// Calculate midpoint of house (average of this cusp and next)
 			const nextCusp = houseCusps.houses[(index + 1) % 12];
-			// Handle wrap-around for the last house
-			let houseMidLongitude;
-			if (index === 11) {
-				// Last house: midpoint between 12th cusp and 1st cusp
-				// If nextCusp < cusp, we've wrapped around
-				if (nextCusp < cusp) {
-					houseMidLongitude = (cusp + nextCusp + 360) / 2;
-					if (houseMidLongitude >= 360) houseMidLongitude -= 360;
-				} else {
-					houseMidLongitude = (cusp + nextCusp) / 2;
-				}
-			} else {
-				houseMidLongitude = (cusp + nextCusp) / 2;
+			
+			// Calculate midpoint, handling wrap-around correctly
+			let houseMidLongitude: number;
+			
+			// Calculate the angular distance between cusps
+			let diff = nextCusp - cusp;
+			
+			// Normalize difference to -180 to +180 range
+			if (diff > 180) {
+				diff -= 360;
+			} else if (diff < -180) {
+				diff += 360;
 			}
+			
+			// Calculate midpoint
+			houseMidLongitude = cusp + diff / 2;
+			
+			// Normalize to 0-360 range
+			houseMidLongitude = houseMidLongitude % 360;
+			if (houseMidLongitude < 0) houseMidLongitude += 360;
+			
 			const houseMidAngle = longitudeToAngle(houseMidLongitude);
-			const [x, y] = angleToCoords(houseMidAngle, 170);
+			const [x, y] = angleToCoords(houseMidAngle, houseRadius);
 
 			const houseNumber = index + 1;
 			return (
@@ -366,10 +373,18 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 		});
 	}, [houseCusps, longitudeToAngle, angleToCoords, houseRadius]);
 
+	// Get Ascendant sign for display
+	const ascendantSign = houseCusps ? longitudeToSign(houseCusps.ascendant) : null;
+
 	return (
 		<div className="natal-chart-section">
 			<h3>
 				Wheel{" "}
+				{ascendantSign && (
+					<span style={{ fontSize: '0.9rem', color: '#999', fontWeight: 'normal' }}>
+						(Ascendant: {ascendantSign})
+					</span>
+				)}
 				<span 
 					className="info-icon"
 					onMouseEnter={(e) => {
