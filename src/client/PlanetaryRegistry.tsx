@@ -85,13 +85,9 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 
 	useEffect(() => {
 		// Combine date and time
-		// Create date in local timezone, but calculations will convert to UTC as needed
 		const [hours, minutes] = selectedTime.split(":").map(Number);
 		const dateTime = new Date(selectedDate);
 		dateTime.setHours(hours, minutes, 0, 0);
-		
-		// Ensure we're using the exact date/time specified by the user
-		// Swiss Ephemeris will handle UTC conversion internally
 
 		setIsLoading(true);
 		setError(null);

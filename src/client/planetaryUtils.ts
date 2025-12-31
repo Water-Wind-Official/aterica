@@ -212,8 +212,7 @@ async function getPlanetPosition(
 ): Promise<{ longitude: number; isRetrograde: boolean }> {
 	const planetNumber = PLANET_NUMBERS[planet];
 	
-	// Convert date to Julian Day using UTC (Swiss Ephemeris expects UTC)
-	// This ensures accurate planetary positions regardless of user's timezone
+	// Convert date to Julian Day
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth() + 1; // Swiss Ephemeris uses 1-12
 	const day = date.getUTCDate();
@@ -371,10 +370,13 @@ export async function calculateSunriseSunset(
 ): Promise<{ sunrise: Date; sunset: Date }> {
 	const swe = await initSwissEphemeris();
 	
-	// Get Julian Day for the date at noon (local time)
+	// Get Julian Day for the date at noon local time
+	// Swiss Ephemeris swe_rise_trans expects local time for the location
+	// We use local date components because we want sunrise/sunset for the local day at this location
 	const year = date.getFullYear();
 	const month = date.getMonth() + 1;
 	const day = date.getDate();
+	// Use noon local time as the reference point
 	const julianDay = swe.swe_julday(year, month, day, 12.0, 1);
 	
 	// Calculate sunrise (SE_CALC_RISE = 1)
@@ -414,14 +416,15 @@ export async function calculateSunriseSunset(
 	return { sunrise: sunriseDate, sunset: sunsetDate };
 }
 
-// Convert Julian Day to Date
+// Convert Julian Day to Date (UTC)
 async function julianDayToDate(jd: number): Promise<Date> {
 	const swe = await initSwissEphemeris();
 	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
 	const hour = result.hour || 0;
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
-	return new Date(result.year, result.month - 1, result.day, Math.floor(hour), minute, second);
+	// Create Date in UTC, then convert to local time for display
+	return new Date(Date.UTC(result.year, result.month - 1, result.day, Math.floor(hour), minute, second));
 }
 
 // Get Planetary Hour based on sunrise/sunset
