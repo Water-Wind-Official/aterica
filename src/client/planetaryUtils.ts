@@ -639,6 +639,34 @@ export async function calculateElementalProfile(
 			break;
 	}
 	
+	// 8. Weather-based Buffs
+	if (weather) {
+		switch (weather) {
+			case "Clear":
+				buffs.earth += 5;
+				buffs.air += 2;
+				break;
+			case "Sunny":
+				buffs.fire += 16;
+				break;
+			case "Windy":
+				buffs.air += 22;
+				break;
+			case "Drizzle":
+				buffs.water += 16;
+				break;
+			case "Rainstorm":
+				buffs.water += 22;
+				buffs.air += 22;
+				break;
+			case "ThunderStorm":
+				buffs.water += 22;
+				buffs.air += 22;
+				buffs.fire += 11;
+				break;
+		}
+	}
+	
 	// Convert buffs to percentages (sum all buffs, then calculate percentage of total)
 	const totalBuffs = buffs.fire + buffs.earth + buffs.air + buffs.water + buffs.spirit;
 	
@@ -764,7 +792,8 @@ export async function calculateElementalProfile(
 		const weatherBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
 		switch (weather) {
 			case "Clear":
-				weatherBuffs.earth = 16;
+				weatherBuffs.earth = 5;
+				weatherBuffs.air = 2;
 				break;
 			case "Sunny":
 				weatherBuffs.fire = 16;

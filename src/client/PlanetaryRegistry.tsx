@@ -44,7 +44,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
-	const [selectedWeather, setSelectedWeather] = useState<string | null>(null);
+	const [selectedWeather, setSelectedWeather] = useState<string | null>("Clear");
 
 	// Try to get location from browser on mount
 	useEffect(() => {
@@ -340,12 +340,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								<div className="weather-selector">
 									<span className="weather-label">Weather:</span>
 									<div className="weather-buttons">
-										<button 
-											className={`weather-button ${selectedWeather === null ? "selected" : ""}`}
-											onClick={() => setSelectedWeather(null)}
-										>
-											None
-										</button>
 										<button 
 											className={`weather-button ${selectedWeather === "Clear" ? "selected" : ""}`}
 											onClick={() => setSelectedWeather("Clear")}
