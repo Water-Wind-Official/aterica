@@ -109,7 +109,7 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather";
+	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather";
 	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
@@ -546,7 +546,16 @@ export async function calculateElementalProfile(
 	const moonDignity = dignities.find(d => d.planet === "Moon");
 	const moonSign = moonDignity?.sign;
 	
-	// Start with 0 buffs
+	// Start with base percentages (non-competitive system)
+	const basePercentages = {
+		fire: 50,
+		earth: 50,
+		air: 60,
+		water: 50,
+		spirit: 0,
+	};
+	
+	// Buffs/debuffs as percentage points to add/subtract
 	const buffs = {
 		fire: 0,
 		earth: 0,
@@ -675,15 +684,14 @@ export async function calculateElementalProfile(
 		}
 	}
 	
-	// Convert buffs to percentages (sum all buffs, then calculate percentage of total)
-	const totalBuffs = buffs.fire + buffs.earth + buffs.air + buffs.water + buffs.spirit;
-	
+	// Convert buffs to percentage points and add to base percentages
+	// Clamp between 0% and 100% to keep values reasonable
 	const profile: ElementalProfile = {
-		fire: totalBuffs > 0 ? (buffs.fire / totalBuffs) * 100 : 0,
-		earth: totalBuffs > 0 ? (buffs.earth / totalBuffs) * 100 : 0,
-		air: totalBuffs > 0 ? (buffs.air / totalBuffs) * 100 : 0,
-		water: totalBuffs > 0 ? (buffs.water / totalBuffs) * 100 : 0,
-		spirit: totalBuffs > 0 ? (buffs.spirit / totalBuffs) * 100 : 0,
+		fire: Math.max(0, Math.min(100, basePercentages.fire + buffs.fire)),
+		earth: Math.max(0, Math.min(100, basePercentages.earth + buffs.earth)),
+		air: Math.max(0, Math.min(100, basePercentages.air + buffs.air)),
+		water: Math.max(0, Math.min(100, basePercentages.water + buffs.water)),
+		spirit: Math.max(0, Math.min(100, basePercentages.spirit + buffs.spirit)),
 		planetaryHour: planetaryHour.ruler,
 		tattva,
 		moonSign,
@@ -737,6 +745,18 @@ export async function calculateElementalProfile(
 		water: planetaryHourElement === "Water" ? 10 : 0,
 		spirit: 0,
 		details: `${planetaryHour.ruler} Hour (${planetaryHourElement} element)`,
+	});
+	
+	// Base percentages breakdown
+	breakdown.push({
+		source: "Base Percentages",
+		weight: 0,
+		fire: 50,
+		earth: 50,
+		air: 60,
+		water: 50,
+		spirit: 0,
+		details: "Base: Fire (50%), Earth (50%), Air (60%), Water (50%)",
 	});
 	
 	// Constants breakdown

@@ -191,16 +191,22 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const total = profile[elementKey];
 		
 		const parts: string[] = [];
+		let basePercentage = 0;
 		let totalBuffs = 0;
+		
 		profile.breakdown.forEach(component => {
 			const componentValue = component[elementKey];
-			if (componentValue !== 0) {
+			if (component.source === "Base Percentages") {
+				basePercentage = componentValue;
+				parts.push(`Base: ${componentValue.toFixed(0)}%`);
+			} else if (componentValue !== 0) {
 				totalBuffs += componentValue;
-				parts.push(`${component.source}: +${componentValue.toFixed(0)}`);
+				const sign = componentValue > 0 ? "+" : "";
+				parts.push(`${component.source}: ${sign}${componentValue.toFixed(0)}`);
 			}
 		});
 		
-		return `${element} Buffs:\n${parts.join("\n")}\n\nTotal Buffs: ${totalBuffs.toFixed(0)}\nFinal Percentage: ${total.toFixed(1)}%`;
+		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${totalBuffs.toFixed(0)}\nFinal Percentage: ${total.toFixed(1)}%`;
 	};
 
 	const formatDateInput = (date: Date): string => {
