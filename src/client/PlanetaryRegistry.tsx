@@ -45,6 +45,12 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
 	const [selectedWeather, setSelectedWeather] = useState<string | null>("Clear");
+	
+	// Multi-step date picker state
+	const [datePickerStep, setDatePickerStep] = useState<"year" | "month" | "day" | null>(null);
+	const [tempYear, setTempYear] = useState<string>("");
+	const [tempMonth, setTempMonth] = useState<number | null>(null);
+	const [tempDay, setTempDay] = useState<number | null>(null);
 
 	// Try to get location from browser on mount
 	useEffect(() => {
@@ -193,10 +199,53 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	};
 
 	const formatDateInput = (date: Date): string => {
-		const year = date.getFullYear();
-		const month = String(date.getMonth() + 1).padStart(2, "0");
-		const day = String(date.getDate()).padStart(2, "0");
-		return `${year}-${month}-${day}`;
+		return date.toLocaleDateString("en-US", { 
+			month: "short", 
+			day: "numeric",
+			year: "numeric" 
+		});
+	};
+	
+	const handleDateButtonClick = () => {
+		setTempYear(selectedDate.getFullYear().toString());
+		setTempMonth(selectedDate.getMonth());
+		setTempDay(selectedDate.getDate());
+		setDatePickerStep("year");
+	};
+	
+	const handleYearSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		const year = parseInt(tempYear);
+		if (year >= 1000 && year <= 9999) {
+			setDatePickerStep("month");
+		}
+	};
+	
+	const handleMonthSelect = (month: number) => {
+		setTempMonth(month);
+		setDatePickerStep("day");
+	};
+	
+	const handleDaySelect = (day: number) => {
+		if (tempYear && tempMonth !== null) {
+			const year = parseInt(tempYear);
+			const newDate = new Date(year, tempMonth, day);
+			setSelectedDate(newDate);
+			setDatePickerStep(null);
+		}
+	};
+	
+	const getDaysInMonth = (year: number, month: number): number => {
+		return new Date(year, month + 1, 0).getDate();
+	};
+	
+	const getFirstDayOfMonth = (year: number, month: number): number => {
+		return new Date(year, month, 1).getDay();
+	};
+	
+	const getMonthName = (month: number): string => {
+		const date = new Date(2000, month, 1);
+		return date.toLocaleDateString("en-US", { month: "long" });
 	};
 
 	const formatEventDate = (date: Date): string => {
@@ -253,12 +302,14 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			<div className="datetime-controls">
 				<div className="control-group">
 					<label htmlFor="date-input">Date:</label>
-					<input
+					<button
 						id="date-input"
-						type="date"
-						value={formatDateInput(selectedDate)}
-						onChange={(e) => setSelectedDate(new Date(e.target.value))}
-					/>
+						type="button"
+						className="date-picker-button"
+						onClick={handleDateButtonClick}
+					>
+						{formatDateInput(selectedDate)}
+					</button>
 				</div>
 				<div className="control-group">
 					<label htmlFor="time-input">Time:</label>
@@ -287,6 +338,91 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 					</div>
 				)}
 			</div>
+			
+			{/* Multi-step Date Picker Modal */}
+			{datePickerStep && (
+				<div className="date-picker-modal-overlay" onClick={() => setDatePickerStep(null)}>
+					<div className="date-picker-modal" onClick={(e) => e.stopPropagation()}>
+						{datePickerStep === "year" && (
+							<div className="date-picker-step">
+								<h3>Select Year</h3>
+								<form onSubmit={handleYearSubmit}>
+									<input
+										type="text"
+										className="year-input"
+										value={tempYear}
+										onChange={(e) => {
+											const val = e.target.value.replace(/\D/g, "");
+											if (val.length <= 4) setTempYear(val);
+										}}
+										placeholder="YYYY"
+										autoFocus
+									/>
+									<div className="date-picker-actions">
+										<button type="button" onClick={() => setDatePickerStep(null)}>Cancel</button>
+										<button type="submit" disabled={tempYear.length !== 4}>Next</button>
+									</div>
+								</form>
+							</div>
+						)}
+						
+						{datePickerStep === "month" && tempYear && (
+							<div className="date-picker-step">
+								<h3>Select Month</h3>
+								<div className="month-grid">
+									{Array.from({ length: 12 }, (_, i) => (
+										<button
+											key={i}
+											className={`month-button ${tempMonth === i ? "selected" : ""}`}
+											onClick={() => handleMonthSelect(i)}
+										>
+											{getMonthName(i).slice(0, 3)}
+										</button>
+									))}
+								</div>
+								<div className="date-picker-actions">
+									<button type="button" onClick={() => setDatePickerStep("year")}>Back</button>
+									<button type="button" onClick={() => setDatePickerStep(null)}>Cancel</button>
+								</div>
+							</div>
+						)}
+						
+						{datePickerStep === "day" && tempYear && tempMonth !== null && (
+							<div className="date-picker-step">
+								<h3>{getMonthName(tempMonth)} {tempYear}</h3>
+								<div className="calendar">
+									<div className="calendar-header">
+										{["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+											<div key={day} className="calendar-day-header">{day}</div>
+										))}
+									</div>
+									<div className="calendar-grid">
+										{Array.from({ length: getFirstDayOfMonth(parseInt(tempYear), tempMonth) }, (_, i) => (
+											<div key={`empty-${i}`} className="calendar-day empty"></div>
+										))}
+										{Array.from({ length: getDaysInMonth(parseInt(tempYear), tempMonth) }, (_, i) => {
+											const day = i + 1;
+											return (
+												<button
+													key={day}
+													className={`calendar-day ${tempDay === day ? "selected" : ""}`}
+													onClick={() => handleDaySelect(day)}
+												>
+													{day}
+												</button>
+											);
+										})}
+									</div>
+								</div>
+								<div className="date-picker-actions">
+									<button type="button" onClick={() => setDatePickerStep("month")}>Back</button>
+									<button type="button" onClick={() => setDatePickerStep(null)}>Cancel</button>
+								</div>
+							</div>
+						)}
+					</div>
+				</div>
+			)}
 
 			<div className="current-rulers">
 				<p className="ruler-info">

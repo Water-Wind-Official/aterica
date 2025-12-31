@@ -654,6 +654,7 @@ export async function calculateElementalProfile(
 				break;
 			case "Drizzle":
 				buffs.water += 16;
+				buffs.air += 3;
 				break;
 			case "Rainstorm":
 				buffs.water += 22;
@@ -803,6 +804,7 @@ export async function calculateElementalProfile(
 				break;
 			case "Drizzle":
 				weatherBuffs.water = 16;
+				weatherBuffs.air = 3;
 				break;
 			case "Rainstorm":
 				weatherBuffs.water = 22;
