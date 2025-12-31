@@ -461,7 +461,7 @@ a {
 /* Elemental Profile Section */
 .elemental-profile-section {
 	margin: 40px 0;
-	padding: 20px;
+	padding: 30px;
 	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
 	border-radius: 12px;
 	border: 1px solid #333;
@@ -470,16 +470,23 @@ a {
 .elemental-profile-section h3 {
 	color: white;
 	font-size: 1.5rem;
-	margin-bottom: 20px;
+	margin-bottom: 30px;
 	display: flex;
 	align-items: center;
 	gap: 10px;
 }
 
-.elemental-breakdown {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: 30px;
+.elemental-profile-section h4 {
+	color: white;
+	font-size: 1.2rem;
+	margin: 25px 0 15px 0;
+	font-weight: 600;
+}
+
+.elemental-final-result {
+	margin-bottom: 40px;
+	padding-bottom: 30px;
+	border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .elemental-stats {
@@ -491,17 +498,20 @@ a {
 .element-bar {
 	position: relative;
 	background-color: rgba(255, 255, 255, 0.05);
-	border-radius: 6px;
-	padding: 10px;
-	min-height: 40px;
+	border-radius: 8px;
+	padding: 12px 15px;
+	min-height: 45px;
 	display: flex;
 	align-items: center;
+	overflow: hidden;
+	opacity: 0;
+	animation: fadeInUp 0.6s ease-out forwards;
 }
 
 .element-label {
 	color: white;
 	font-weight: 600;
-	font-size: 0.95rem;
+	font-size: 1rem;
 	z-index: 1;
 	position: relative;
 }
@@ -511,26 +521,155 @@ a {
 	left: 0;
 	top: 0;
 	height: 100%;
-	border-radius: 6px;
-	opacity: 0.3;
-	transition: width 0.3s ease;
-}
-
-.elemental-details {
-	background: rgba(255, 255, 255, 0.05);
 	border-radius: 8px;
-	padding: 15px;
+	opacity: 0.4;
+	transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+	animation: fadeInScale 0.6s ease-out forwards;
 }
 
-.elemental-details p {
+@keyframes fadeInScale {
+	from {
+		opacity: 0;
+		transform: scaleX(0);
+		transform-origin: left;
+	}
+	to {
+		opacity: 0.4;
+		transform: scaleX(1);
+	}
+
+.animated-fill {
+	animation: fillBar 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+	transform-origin: left;
+}
+
+@keyframes fillBar {
+	from {
+		transform: scaleX(0);
+		opacity: 0;
+	}
+	to {
+		transform: scaleX(1);
+		opacity: 1;
+	}
+}
+
+/* Breakdown Visual */
+.elemental-breakdown-visual {
+	margin-top: 30px;
+}
+
+.breakdown-components {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+.breakdown-component {
+	background: rgba(255, 255, 255, 0.03);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 10px;
+	padding: 20px;
+	opacity: 0;
+	animation: fadeInUp 0.6s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.breakdown-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 15px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.breakdown-source {
+	color: white;
+	font-weight: 600;
+	font-size: 1.1rem;
+}
+
+.breakdown-weight {
+	color: #fbbf24;
+	font-weight: 700;
+	font-size: 1rem;
+	background: rgba(251, 191, 36, 0.2);
+	padding: 4px 12px;
+	border-radius: 12px;
+}
+
+.breakdown-bars {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	margin-bottom: 10px;
+}
+
+.breakdown-bar {
+	display: flex;
+	align-items: center;
+	gap: 15px;
+}
+
+.breakdown-bar .breakdown-label {
 	color: #ccc;
 	font-size: 0.9rem;
-	margin: 10px 0;
-	line-height: 1.5;
+	font-weight: 500;
+	min-width: 80px;
 }
 
-.elemental-details strong {
+.breakdown-bar-container {
+	flex: 1;
+	position: relative;
+	background-color: rgba(255, 255, 255, 0.05);
+	border-radius: 6px;
+	height: 28px;
+	display: flex;
+	align-items: center;
+	overflow: hidden;
+}
+
+.breakdown-bar-fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	height: 100%;
+	border-radius: 6px;
+	opacity: 0.6;
+	transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+	animation: fadeInScale 0.6s ease-out forwards;
+}
+
+.breakdown-value {
+	position: relative;
+	z-index: 1;
 	color: white;
+	font-weight: 600;
+	font-size: 0.85rem;
+	margin-left: auto;
+	margin-right: 10px;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.breakdown-details {
+	color: #999;
+	font-size: 0.85rem;
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid rgba(255, 255, 255, 0.05);
+	line-height: 1.5;
+	font-style: italic;
 }
 
 .location-info {

@@ -108,6 +108,17 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
+export interface ElementalBreakdown {
+	source: "Planetary Positions" | "Planetary Hour" | "Tattva";
+	weight: number; // percentage weight (50, 30, 20)
+	fire: number;
+	earth: number;
+	air: number;
+	water: number;
+	spirit: number;
+	details?: string; // Description of this component
+}
+
 export interface ElementalProfile {
 	fire: number;
 	earth: number;
@@ -117,6 +128,7 @@ export interface ElementalProfile {
 	planetaryHour: Planet;
 	tattva: Tattva;
 	moonSign?: ZodiacSign;
+	breakdown: ElementalBreakdown[]; // Visual breakdown of calculation
 }
 
 export interface Location {
@@ -510,7 +522,8 @@ function tattvaToElement(tattva: Tattva): Element {
 	}
 }
 
-// Calculate elemental profile using 60/40 split (Planetary Hour 60%, Tattva 40%)
+// Calculate elemental profile using weighted system:
+// 50% Planetary Positions (cosmic state), 30% Planetary Hour (temporal macro), 20% Tattva (temporal micro)
 export async function calculateElementalProfile(
 	date: Date,
 	location: Location
@@ -523,15 +536,53 @@ export async function calculateElementalProfile(
 	const hourElement = planetToElement(planetaryHour.ruler);
 	const tattvaElement = tattvaToElement(tattva);
 	
-	// Get Moon sign for triple key calculation
+	// Get all planetary positions to calculate cosmic elemental state
 	const dignities = await getAllPlanetaryDignities(date);
+	
+	// Count elements from planetary positions
+	const elementCounts = {
+		fire: 0,
+		earth: 0,
+		air: 0,
+		water: 0,
+	};
+	
+	// Weight planets by importance (traditional rulership)
+	const planetWeights: Record<Planet, number> = {
+		Sun: 2.0,      // Most important
+		Moon: 2.0,     // Most important
+		Mercury: 1.0,
+		Venus: 1.5,
+		Mars: 1.5,
+		Jupiter: 1.5,
+		Saturn: 1.5,
+	};
+	
+	dignities.forEach(dignity => {
+		const element = SIGN_ELEMENTS[dignity.sign];
+		const weight = planetWeights[dignity.planet];
+		
+		switch (element) {
+			case "Fire":
+				elementCounts.fire += weight;
+				break;
+			case "Earth":
+				elementCounts.earth += weight;
+				break;
+			case "Air":
+				elementCounts.air += weight;
+				break;
+			case "Water":
+				elementCounts.water += weight;
+				break;
+		}
+	});
+	
+	// Normalize to percentages (total weight = 12.5)
+	const totalWeight = Object.values(elementCounts).reduce((sum, count) => sum + count, 0);
+	
 	const moonDignity = dignities.find(d => d.planet === "Moon");
 	const moonSign = moonDignity?.sign;
-	const moonElement = moonSign ? SIGN_ELEMENTS[moonSign] : undefined;
-	
-	// Calculate percentages: 60% Planetary Hour, 40% Tattva
-	// Optional: 20% Moon Sign, 40% Hour, 40% Tattva (triple key)
-	const useTripleKey = moonElement !== undefined;
 	
 	const profile: ElementalProfile = {
 		fire: 0,
@@ -542,18 +593,60 @@ export async function calculateElementalProfile(
 		planetaryHour: planetaryHour.ruler,
 		tattva,
 		moonSign,
+		breakdown: [],
 	};
 	
-	if (useTripleKey && moonElement) {
-		// Triple Key: Moon 20%, Hour 40%, Tattva 40%
-		addElement(profile, moonElement, 20);
-		addElement(profile, hourElement, 40);
-		addElement(profile, tattvaElement, 40);
-	} else {
-		// Standard: Hour 60%, Tattva 40%
-		addElement(profile, hourElement, 60);
-		addElement(profile, tattvaElement, 40);
+	// Calculate breakdown for visual display
+	const breakdown: ElementalBreakdown[] = [];
+	
+	// 1. Planetary Positions (50%)
+	if (totalWeight > 0) {
+		const positionsBreakdown: ElementalBreakdown = {
+			source: "Planetary Positions",
+			weight: 50,
+			fire: (elementCounts.fire / totalWeight) * 50,
+			earth: (elementCounts.earth / totalWeight) * 50,
+			air: (elementCounts.air / totalWeight) * 50,
+			water: (elementCounts.water / totalWeight) * 50,
+			spirit: 0,
+			details: dignities.map(d => `${d.planet} in ${d.sign} (${SIGN_ELEMENTS[d.sign]})`).join(", "),
+		};
+		breakdown.push(positionsBreakdown);
+		addElement(profile, "Fire", positionsBreakdown.fire);
+		addElement(profile, "Earth", positionsBreakdown.earth);
+		addElement(profile, "Air", positionsBreakdown.air);
+		addElement(profile, "Water", positionsBreakdown.water);
 	}
+	
+	// 2. Planetary Hour (30%)
+	const hourBreakdown: ElementalBreakdown = {
+		source: "Planetary Hour",
+		weight: 30,
+		fire: hourElement === "Fire" ? 30 : 0,
+		earth: hourElement === "Earth" ? 30 : 0,
+		air: hourElement === "Air" ? 30 : 0,
+		water: hourElement === "Water" ? 30 : 0,
+		spirit: hourElement === "Spirit" ? 30 : 0,
+		details: `${planetaryHour.ruler} Hour (${hourElement} element)`,
+	};
+	breakdown.push(hourBreakdown);
+	addElement(profile, hourElement, 30);
+	
+	// 3. Tattva (20%)
+	const tattvaBreakdown: ElementalBreakdown = {
+		source: "Tattva",
+		weight: 20,
+		fire: tattvaElement === "Fire" ? 20 : 0,
+		earth: tattvaElement === "Earth" ? 20 : 0,
+		air: tattvaElement === "Air" ? 20 : 0,
+		water: tattvaElement === "Water" ? 20 : 0,
+		spirit: tattvaElement === "Spirit" ? 20 : 0,
+		details: `Current Tattva: ${tattva} (${tattvaElement} element)`,
+	};
+	breakdown.push(tattvaBreakdown);
+	addElement(profile, tattvaElement, 20);
+	
+	profile.breakdown = breakdown;
 	
 	return profile;
 }
