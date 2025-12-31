@@ -1082,14 +1082,22 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 											className="zodiac-dash-card"
 											onMouseEnter={(e) => handleSignHover(sign, e)}
 											onMouseLeave={hideTooltip}
-											style={{ cursor: 'pointer', borderLeft: `3px solid ${elementColor}` }}
+											style={{ 
+												cursor: 'pointer', 
+												borderLeft: `4px solid ${elementColor}`,
+												boxShadow: `0 0 20px ${elementColor}15, inset 0 0 20px ${elementColor}05`
+											}}
 										>
 											<div className="zodiac-dash-header">
-												<span className="zodiac-dash-symbol">{getZodiacSymbol(sign)}</span>
-												<span className="zodiac-dash-sign" style={{ color: elementColor }}>
-													{sign}
+												<span className="zodiac-dash-symbol" style={{ color: elementColor }}>
+													{getZodiacSymbol(sign)}
 												</span>
-												<span className="zodiac-dash-element">{getElementEmoji(element)} {element}</span>
+												<div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+													<span className="zodiac-dash-sign" style={{ color: elementColor }}>
+														{sign}
+													</span>
+													<span className="zodiac-dash-element">{getElementEmoji(element)} {element}</span>
+												</div>
 											</div>
 											
 											{housesInSign.length > 0 && (

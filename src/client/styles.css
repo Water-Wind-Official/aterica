@@ -534,116 +534,181 @@ a {
 
 .zodiac-dash-section {
 	margin: 40px 0;
-	padding: 20px;
-	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
-	border-radius: 12px;
-	border: 1px solid #333;
+	padding: 30px;
+	background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+	border-radius: 16px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .zodiac-dash-section h3 {
 	color: white;
-	font-size: 1.5rem;
-	margin-bottom: 20px;
+	font-size: 1.8rem;
+	margin-bottom: 30px;
 	display: flex;
 	align-items: center;
 	gap: 10px;
+	font-weight: 300;
+	letter-spacing: 2px;
+	text-transform: uppercase;
+	background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-clip: text;
 }
 
 .zodiac-dash-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-	gap: 16px;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 20px;
 }
 
 .zodiac-dash-card {
-	padding: 16px;
-	background: rgba(255, 255, 255, 0.03);
-	border-radius: 8px;
-	border: 1px solid #333;
-	transition: all 0.2s ease;
+	padding: 20px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%);
+	border-radius: 12px;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+	position: relative;
+	overflow: hidden;
+	backdrop-filter: blur(10px);
+}
+
+.zodiac-dash-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	background: linear-gradient(90deg, transparent, currentColor, transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
 }
 
 .zodiac-dash-card:hover {
-	background: rgba(255, 255, 255, 0.06);
-	border-color: #555;
-	transform: translateY(-2px);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+	border-color: rgba(255, 255, 255, 0.2);
+	transform: translateY(-4px);
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+.zodiac-dash-card:hover::before {
+	opacity: 0.6;
 }
 
 .zodiac-dash-header {
 	display: flex;
-	justify-content: space-between;
 	align-items: center;
-	margin-bottom: 12px;
-	padding-bottom: 8px;
-	border-bottom: 1px solid #333;
-	gap: 10px;
+	justify-content: space-between;
+	margin-bottom: 16px;
+	padding-bottom: 12px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	gap: 12px;
+	position: relative;
 }
 
 .zodiac-dash-symbol {
-	font-size: 1.8rem;
+	font-size: 2.5rem;
 	line-height: 1;
+	filter: drop-shadow(0 0 8px currentColor);
+	opacity: 0.9;
+	transition: all 0.3s ease;
+	flex-shrink: 0;
+}
+
+.zodiac-dash-card:hover .zodiac-dash-symbol {
+	transform: scale(1.1);
+	opacity: 1;
+	filter: drop-shadow(0 0 12px currentColor);
 }
 
 .zodiac-dash-sign {
-	font-size: 1.1rem;
+	font-size: 1.2rem;
 	font-weight: 600;
 	color: white;
 	flex: 1;
+	letter-spacing: 0.5px;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
 .zodiac-dash-element {
-	font-size: 0.85rem;
-	color: #999;
+	font-size: 0.75rem;
+	color: rgba(255, 255, 255, 0.6);
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	font-weight: 500;
+	display: flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .zodiac-dash-houses,
 .zodiac-dash-planets {
-	margin-top: 10px;
+	margin-top: 12px;
 	font-size: 0.9rem;
 }
 
 .zodiac-dash-label {
-	color: #aaa;
-	margin-right: 8px;
+	color: rgba(255, 255, 255, 0.5);
+	margin-right: 10px;
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	font-weight: 500;
 }
 
 .zodiac-dash-houses-list,
 .zodiac-dash-planets-list {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: 8px;
 }
 
 .zodiac-dash-house-badge {
 	display: inline-block;
-	padding: 4px 8px;
-	background: rgba(255, 255, 255, 0.1);
-	border-radius: 4px;
-	color: #ccc;
+	padding: 6px 12px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.08) 100%);
+	border-radius: 6px;
+	color: rgba(255, 255, 255, 0.9);
 	font-size: 0.85rem;
+	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s ease;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(5px);
 }
 
 .zodiac-dash-house-badge:hover {
-	background: rgba(255, 255, 255, 0.2);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.15) 100%);
 	color: white;
+	border-color: rgba(255, 255, 255, 0.3);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .zodiac-dash-planet {
-	display: inline-block;
-	padding: 4px 8px;
-	background: rgba(255, 255, 255, 0.05);
-	border-radius: 4px;
-	color: #ccc;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.05) 100%);
+	border-radius: 6px;
+	color: rgba(255, 255, 255, 0.85);
 	font-size: 0.85rem;
+	font-weight: 500;
 	cursor: pointer;
 	transition: all 0.2s ease;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	backdrop-filter: blur(5px);
 }
 
 .zodiac-dash-planet:hover {
-	background: rgba(255, 255, 255, 0.15);
+	background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.1) 100%);
 	color: white;
+	border-color: rgba(255, 255, 255, 0.2);
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .alignments-grid {
