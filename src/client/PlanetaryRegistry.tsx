@@ -52,8 +52,20 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [tempMonth, setTempMonth] = useState<number | null>(null);
 	const [tempDay, setTempDay] = useState<number | null>(null);
 
-	// Try to get location from browser on mount
+	// Initialize with default location (90210) and try to get location from browser
 	useEffect(() => {
+		// Set default location to 90210 (Beverly Hills, CA)
+		const setDefaultLocation = async () => {
+			const defaultLoc = await zipCodeToLocation("90210");
+			if (defaultLoc) {
+				setLocation(defaultLoc);
+				console.log(`[PlanetaryRegistry] Default location set to 90210:`, defaultLoc);
+			}
+		};
+		
+		setDefaultLocation();
+		
+		// Try to get location from browser (will override default if successful)
 		if (navigator.geolocation) {
 			navigator.geolocation.getCurrentPosition(
 				(position) => {
@@ -61,9 +73,14 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 						latitude: position.coords.latitude,
 						longitude: position.coords.longitude,
 					});
+					console.log(`[PlanetaryRegistry] Browser location detected:`, {
+						latitude: position.coords.latitude,
+						longitude: position.coords.longitude,
+					});
 				},
 				() => {
-					// User denied or error - that's okay
+					// User denied or error - that's okay, use default
+					console.log(`[PlanetaryRegistry] Browser location denied, using default 90210`);
 				}
 			);
 		}

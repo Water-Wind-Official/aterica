@@ -381,21 +381,31 @@ export async function calculateSunriseSunset(
 ): Promise<{ sunrise: Date; sunset: Date }> {
 	const swe = await initSwissEphemeris();
 	
-	// Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
-	// The date parameter represents the user's selected date/time (in browser's local timezone)
-	// We need to determine which calendar day we want sunrise/sunset for
-	// Use local date components to get the correct day, then convert to UT for Julian Day
+	console.log(`[calculateSunriseSunset] Input date: ${date.toISOString()} (${date.toString()})`);
+	console.log(`[calculateSunriseSunset] Location: Lat ${latitude}, Long ${longitude}`);
+	
+	// Get the calendar day we want sunrise/sunset for (in the browser's local timezone)
+	// This is the date the user selected, not UTC
 	const localYear = date.getFullYear();
-	const localMonth = date.getMonth() + 1;
+	const localMonth = date.getMonth() + 1; // 1-12
 	const localDay = date.getDate();
-	// Create a date at noon local time for that calendar day
-	const localNoon = new Date(localYear, localMonth - 1, localDay, 12, 0, 0);
-	// Convert to UT components for Swiss Ephemeris (which expects UT)
-	const year = localNoon.getUTCFullYear();
-	const month = localNoon.getUTCMonth() + 1;
-	const day = localNoon.getUTCDate();
-	const hour = localNoon.getUTCHours() + localNoon.getUTCMinutes() / 60;
+	
+	console.log(`[calculateSunriseSunset] Calendar day: ${localYear}-${localMonth}-${localDay}`);
+	
+	// Create a date at noon on the target calendar day in the browser's local timezone
+	// This ensures we're asking for sunrise/sunset for the correct day
+	const targetDate = new Date(localYear, localMonth - 1, localDay, 12, 0, 0);
+	
+	// Convert to UTC for Swiss Ephemeris (which expects UT)
+	const year = targetDate.getUTCFullYear();
+	const month = targetDate.getUTCMonth() + 1;
+	const day = targetDate.getUTCDate();
+	const hour = targetDate.getUTCHours() + targetDate.getUTCMinutes() / 60;
+	
+	console.log(`[calculateSunriseSunset] UT date for calculation: ${year}-${month}-${day} ${hour}:00`);
+	
 	const julianDay = swe.swe_julday(year, month, day, hour, 1);
+	console.log(`[calculateSunriseSunset] Julian Day for calculation: ${julianDay}`);
 	
 	// Calculate sunrise (SE_CALC_RISE = 1)
 	// swe_rise_trans returns { flag, error, data } where data is the Julian Day
@@ -462,20 +472,64 @@ export async function calculateSunriseSunset(
 	console.log(`[calculateSunriseSunset] Sunrise JD: ${sunriseJD}, Sunset JD: ${sunsetJD}`);
 	
 	// Convert Julian Day back to Date
-	const sunriseDate = await julianDayToDate(sunriseJD);
-	const sunsetDate = await julianDayToDate(sunsetJD);
+	let sunriseDate = await julianDayToDate(sunriseJD);
+	let sunsetDate = await julianDayToDate(sunsetJD);
 	
-	console.log(`[calculateSunriseSunset] Final sunrise: ${sunriseDate.toISOString()}`);
-	console.log(`[calculateSunriseSunset] Final sunset: ${sunsetDate.toISOString()}`);
+	// CRITICAL FIX: Ensure sunrise/sunset are on the correct calendar day
+	// swe_rise_trans may return times that cross midnight, but we want them on the target day
+	const targetYear = localYear;
+	const targetMonth = localMonth - 1; // JavaScript months are 0-indexed
+	const targetDay = localDay;
+	
+	// Adjust dates to be on the target calendar day if they're off
+	// Sunrise should be on the target day (or very early next day is acceptable)
+	// Sunset should be on the target day (or very late previous day is acceptable)
+	
+	// For sunrise: if it's on the next day but before 6 AM, it's probably the previous day's sunrise
+	// For sunset: if it's on the previous day but after 6 PM, it's probably the target day's sunset
+	if (sunriseDate.getFullYear() === targetYear && 
+	    sunriseDate.getMonth() === targetMonth && 
+	    sunriseDate.getDate() === targetDay + 1 &&
+	    sunriseDate.getHours() < 6) {
+		// Sunrise is early morning next day - adjust to target day
+		sunriseDate = new Date(targetYear, targetMonth, targetDay, sunriseDate.getHours(), sunriseDate.getMinutes(), sunriseDate.getSeconds());
+		console.log(`[calculateSunriseSunset] Adjusted sunrise to target day: ${sunriseDate.toISOString()}`);
+	}
+	
+	if (sunsetDate.getFullYear() === targetYear && 
+	    sunsetDate.getMonth() === targetMonth && 
+	    sunsetDate.getDate() === targetDay - 1 &&
+	    sunsetDate.getHours() >= 18) {
+		// Sunset is late evening previous day - adjust to target day
+		sunsetDate = new Date(targetYear, targetMonth, targetDay, sunsetDate.getHours(), sunsetDate.getMinutes(), sunsetDate.getSeconds());
+		console.log(`[calculateSunriseSunset] Adjusted sunset to target day: ${sunsetDate.toISOString()}`);
+	}
+	
+	// Final validation: ensure dates are reasonable (within 24 hours of target)
+	const targetDateStart = new Date(targetYear, targetMonth, targetDay, 0, 0, 0);
+	const targetDateEnd = new Date(targetYear, targetMonth, targetDay, 23, 59, 59);
+	
+	if (sunriseDate < targetDateStart || sunriseDate > new Date(targetDateEnd.getTime() + 6 * 60 * 60 * 1000)) {
+		console.warn(`[calculateSunriseSunset] Sunrise seems wrong, adjusting to target day`);
+		// Keep the time but use target day
+		sunriseDate = new Date(targetYear, targetMonth, targetDay, sunriseDate.getHours(), sunriseDate.getMinutes(), sunriseDate.getSeconds());
+	}
+	
+	if (sunsetDate < new Date(targetDateStart.getTime() - 6 * 60 * 60 * 1000) || sunsetDate > targetDateEnd) {
+		console.warn(`[calculateSunriseSunset] Sunset seems wrong, adjusting to target day`);
+		// Keep the time but use target day
+		sunsetDate = new Date(targetYear, targetMonth, targetDay, sunsetDate.getHours(), sunsetDate.getMinutes(), sunsetDate.getSeconds());
+	}
+	
+	console.log(`[calculateSunriseSunset] Final sunrise: ${sunriseDate.toISOString()} (${sunriseDate.toString()})`);
+	console.log(`[calculateSunriseSunset] Final sunset: ${sunsetDate.toISOString()} (${sunsetDate.toString()})`);
 	
 	return { sunrise: sunriseDate, sunset: sunsetDate };
 }
 
-// Convert Julian Day to Date (local time)
-// Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
-// The Julian Day it returns represents the local solar time for that location
-// We need to create a Date object that represents this time in the browser's local timezone
-// Since we're comparing dates, we'll interpret the result as if it's in the browser's timezone
+// Convert Julian Day to Date
+// swe_rise_trans returns Julian Day in UT, but represents local solar time for the given longitude
+// We need to convert this to a Date object in the browser's local timezone for comparison
 async function julianDayToDate(jd: number): Promise<Date> {
 	// Validate input
 	if (!jd || !isFinite(jd) || jd <= 0) {
@@ -513,16 +567,17 @@ async function julianDayToDate(jd: number): Promise<Date> {
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
 	
-	console.log(`[julianDayToDate] Converted: year=${year}, month=${month}, day=${day}, hour=${hourInt}, minute=${minute}, second=${second}`);
+	console.log(`[julianDayToDate] UT components: year=${year}, month=${month}, day=${day}, hour=${hourInt}, minute=${minute}, second=${second}`);
 	
 	// Validate the result
 	if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
 		throw new Error(`Invalid date from JD conversion: ${year}-${month}-${day}`);
 	}
 	
-	// Swiss Ephemeris swe_rise_trans with longitude returns local solar time for that location
-	// Create Date in browser's local timezone - this ensures all dates are in the same timezone context
-	// for comparison purposes in getPlanetaryHour
+	// IMPORTANT: swe_rise_trans returns UT Julian Day, but the time represents LOCAL solar time for the location
+	// We need to create a Date object that represents this time in the browser's local timezone
+	// This ensures all dates (currentTime, sunrise, sunset) are in the same timezone context for comparison
+	// Create Date in browser's local timezone (not UTC)
 	const date = new Date(year, month - 1, day, hourInt, minute, second);
 	
 	// Validate the created date
@@ -530,7 +585,7 @@ async function julianDayToDate(jd: number): Promise<Date> {
 		throw new Error(`Invalid date created: ${year}-${month}-${day} ${hourInt}:${minute}:${second}`);
 	}
 	
-	console.log(`[julianDayToDate] Created Date: ${date.toISOString()} (${date.toString()})`);
+	console.log(`[julianDayToDate] Created Date (local timezone): ${date.toISOString()} (${date.toString()})`);
 	
 	return date;
 }
