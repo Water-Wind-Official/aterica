@@ -541,10 +541,19 @@ a {
 	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+.zodiac-dash-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 30px;
+	flex-wrap: wrap;
+	gap: 20px;
+}
+
 .zodiac-dash-section h3 {
 	color: white;
 	font-size: 1.8rem;
-	margin-bottom: 30px;
+	margin: 0;
 	display: flex;
 	align-items: center;
 	gap: 10px;
@@ -555,6 +564,32 @@ a {
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	background-clip: text;
+}
+
+.zodiac-dash-datetime {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 16px;
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(5px);
+}
+
+.zodiac-dash-datetime-label {
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.85rem;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	font-weight: 500;
+}
+
+.zodiac-dash-datetime-value {
+	color: white;
+	font-size: 0.95rem;
+	font-weight: 500;
+	letter-spacing: 0.5px;
 }
 
 .zodiac-dash-grid {

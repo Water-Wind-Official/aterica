@@ -1051,7 +1051,15 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 					{/* Zodiac Dash Section */}
 					{houseCusps && dignities.length > 0 && (
 						<div className="zodiac-dash-section">
-							<h3>Zodiac Dash</h3>
+							<div className="zodiac-dash-title-row">
+								<h3>Zodiac Dash</h3>
+								<div className="zodiac-dash-datetime">
+									<span className="zodiac-dash-datetime-label">Chart Time:</span>
+									<span className="zodiac-dash-datetime-value">
+										{formatDateInput(selectedDate)} {selectedTime}
+									</span>
+								</div>
+							</div>
 							<div className="zodiac-dash-grid">
 								{ZODIAC_SIGNS.map((sign) => {
 									// Find which houses this sign occupies (signs on house cusps)
