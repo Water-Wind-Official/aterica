@@ -121,6 +121,9 @@ function App() {
 							sanctumnetwork.com
 						</a>
 					</p>
+					<p className="footer-copyright">
+						© 2025 Sanctum Network
+					</p>
 				</div>
 			</footer>
 		</div>
