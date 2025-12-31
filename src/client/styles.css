@@ -458,6 +458,94 @@ a {
 	line-height: 1.4;
 }
 
+/* Elemental Profile Section */
+.elemental-profile-section {
+	margin: 40px 0;
+	padding: 20px;
+	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+	border-radius: 12px;
+	border: 1px solid #333;
+}
+
+.elemental-profile-section h3 {
+	color: white;
+	font-size: 1.5rem;
+	margin-bottom: 20px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.elemental-breakdown {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 30px;
+}
+
+.elemental-stats {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+}
+
+.element-bar {
+	position: relative;
+	background-color: rgba(255, 255, 255, 0.05);
+	border-radius: 6px;
+	padding: 10px;
+	min-height: 40px;
+	display: flex;
+	align-items: center;
+}
+
+.element-label {
+	color: white;
+	font-weight: 600;
+	font-size: 0.95rem;
+	z-index: 1;
+	position: relative;
+}
+
+.element-bar-fill {
+	position: absolute;
+	left: 0;
+	top: 0;
+	height: 100%;
+	border-radius: 6px;
+	opacity: 0.3;
+	transition: width 0.3s ease;
+}
+
+.elemental-details {
+	background: rgba(255, 255, 255, 0.05);
+	border-radius: 8px;
+	padding: 15px;
+}
+
+.elemental-details p {
+	color: #ccc;
+	font-size: 0.9rem;
+	margin: 10px 0;
+	line-height: 1.5;
+}
+
+.elemental-details strong {
+	color: white;
+}
+
+.location-info {
+	color: #86efac;
+	font-size: 0.85rem;
+	margin-top: 10px;
+	text-align: center;
+}
+
+@media (max-width: 768px) {
+	.elemental-breakdown {
+		grid-template-columns: 1fr;
+	}
+}
+
 .event-card {
 	cursor: help;
 	transition: transform 0.2s, box-shadow 0.2s;

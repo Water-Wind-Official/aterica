@@ -5,12 +5,16 @@ import {
 	getHourRuler, 
 	detectAlignments,
 	getUpcomingEvents,
+	calculateElementalProfile,
+	zipCodeToLocation,
 	SIGN_ELEMENTS,
 	type PlanetaryDignity, 
 	type Planet,
 	type Element,
 	type PlanetaryAlignment,
 	type UpcomingEvent,
+	type ElementalProfile,
+	type Location,
 } from "./planetaryUtils";
 
 interface PlanetaryRegistryProps {
@@ -29,14 +33,48 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [selectedTime, setSelectedTime] = useState(
 		new Date().toTimeString().slice(0, 5)
 	);
+	const [zipCode, setZipCode] = useState("");
+	const [location, setLocation] = useState<Location | null>(null);
 	const [dignities, setDignities] = useState<PlanetaryDignity[]>([]);
 	const [alignments, setAlignments] = useState<PlanetaryAlignment[]>([]);
 	const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+	const [elementalProfile, setElementalProfile] = useState<ElementalProfile | null>(null);
 	const [dayRuler, setDayRuler] = useState<Planet>("Sun");
 	const [hourRuler, setHourRuler] = useState<Planet>("Sun");
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
+
+	// Try to get location from browser on mount
+	useEffect(() => {
+		if (navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(
+				(position) => {
+					setLocation({
+						latitude: position.coords.latitude,
+						longitude: position.coords.longitude,
+					});
+				},
+				() => {
+					// User denied or error - that's okay
+				}
+			);
+		}
+	}, []);
+
+	// Handle zip code lookup
+	const handleZipCodeChange = async (zip: string) => {
+		setZipCode(zip);
+		if (zip.length === 5 && /^\d{5}$/.test(zip)) {
+			// Try to lookup location
+			const loc = await zipCodeToLocation(zip);
+			if (loc) {
+				setLocation(loc);
+			} else {
+				setError("Could not find location for that zip code. Using browser location if available.");
+			}
+		}
+	};
 
 	useEffect(() => {
 		// Combine date and time
@@ -47,14 +85,30 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		setIsLoading(true);
 		setError(null);
 
-		Promise.all([
+		const calculations = [
 			getAllPlanetaryDignities(dateTime),
 			getUpcomingEvents(dateTime, 365),
-		])
-			.then(([allDignities, events]) => {
+		];
+
+		// Add elemental profile calculation if location is available
+		if (location) {
+			calculations.push(calculateElementalProfile(dateTime, location));
+		}
+
+		Promise.all(calculations)
+			.then((results) => {
+				const allDignities = results[0] as PlanetaryDignity[];
+				const events = results[1] as UpcomingEvent[];
+				const profile = results[2] as ElementalProfile | undefined;
+
 				setDignities(allDignities);
 				setAlignments(detectAlignments(allDignities));
 				setUpcomingEvents(events);
+				if (profile) {
+					setElementalProfile(profile);
+				} else {
+					setElementalProfile(null);
+				}
 				setDayRuler(getDayRuler(dateTime));
 				setHourRuler(getHourRuler(dateTime));
 				setIsLoading(false);
@@ -64,7 +118,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				setError(err.message || "Failed to calculate planetary positions");
 				setIsLoading(false);
 			});
-	}, [selectedDate, selectedTime]);
+	}, [selectedDate, selectedTime, location]);
 
 	const showTooltip = (content: string, event: React.MouseEvent) => {
 		setTooltip({
@@ -143,6 +197,35 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		});
 	};
 
+	const planetToElementName = (planet: Planet): string => {
+		switch (planet) {
+			case "Sun":
+			case "Mars":
+				return "Fire";
+			case "Mercury":
+			case "Jupiter":
+				return "Air";
+			case "Venus":
+			case "Moon":
+				return "Water";
+			case "Saturn":
+				return "Earth";
+		}
+	};
+
+	const tattvaToElementName = (tattva: any): string => {
+		switch (tattva) {
+			case "Akasha": return "Spirit";
+			case "Vayu": return "Air";
+			case "Tejas": return "Fire";
+			case "Apas": return "Water";
+			case "Prithvi": return "Earth";
+		}
+		return "";
+	};
+
+	const tattvaToName = (tattva: any): string => tattva;
+
 	const tooltipContent = {
 		dignity: "Essential Dignity measures a planet's strength based on its zodiac sign. Domicile (🏠) = home, strongest. Exaltation (⭐) = honored guest. Detriment (🚫) = exile, weak. Fall (⬇️) = humiliated, weakest.",
 		score: "Energy score from -10 to +10. Positive = good vibes, negative = challenging. Based on Essential Dignity and retrograde status.",
@@ -176,6 +259,23 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 						onChange={(e) => setSelectedTime(e.target.value)}
 					/>
 				</div>
+				<div className="control-group">
+					<label htmlFor="zip-input">Zip Code:</label>
+					<input
+						id="zip-input"
+						type="text"
+						placeholder="90210"
+						value={zipCode}
+						onChange={(e) => handleZipCodeChange(e.target.value)}
+						maxLength={5}
+						pattern="[0-9]*"
+					/>
+				</div>
+				{location && (
+					<div className="location-info">
+						📍 Lat: {location.latitude.toFixed(2)}, Long: {location.longitude.toFixed(2)}
+					</div>
+				)}
 			</div>
 
 			<div className="current-rulers">
@@ -213,6 +313,61 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				</div>
 			) : (
 				<>
+					{/* Elemental Profile Section */}
+					{elementalProfile && (
+						<div className="elemental-profile-section">
+							<h3>
+								Elemental Energy Profile{" "}
+								<span 
+									className="info-icon"
+									onMouseEnter={(e) => showTooltip("Elemental profile combines Planetary Hour (macro) and Tattva (micro) cycles. Shows the elemental energy percentage of this exact moment.", e)}
+									onMouseLeave={hideTooltip}
+								>
+									ℹ️
+								</span>
+							</h3>
+							<div className="elemental-breakdown">
+								<div className="elemental-stats">
+									<div className="element-bar">
+										<span className="element-label">🔥 Fire: {elementalProfile.fire.toFixed(1)}%</span>
+										<div className="element-bar-fill" style={{ width: `${elementalProfile.fire}%`, backgroundColor: "#ef4444" }} />
+									</div>
+									<div className="element-bar">
+										<span className="element-label">🌍 Earth: {elementalProfile.earth.toFixed(1)}%</span>
+										<div className="element-bar-fill" style={{ width: `${elementalProfile.earth}%`, backgroundColor: "#84cc16" }} />
+									</div>
+									<div className="element-bar">
+										<span className="element-label">💨 Air: {elementalProfile.air.toFixed(1)}%</span>
+										<div className="element-bar-fill" style={{ width: `${elementalProfile.air}%`, backgroundColor: "#3b82f6" }} />
+									</div>
+									<div className="element-bar">
+										<span className="element-label">💧 Water: {elementalProfile.water.toFixed(1)}%</span>
+										<div className="element-bar-fill" style={{ width: `${elementalProfile.water}%`, backgroundColor: "#06b6d4" }} />
+									</div>
+									{elementalProfile.spirit > 0 && (
+										<div className="element-bar">
+											<span className="element-label">✨ Spirit: {elementalProfile.spirit.toFixed(1)}%</span>
+											<div className="element-bar-fill" style={{ width: `${elementalProfile.spirit}%`, backgroundColor: "#a855f7" }} />
+										</div>
+									)}
+								</div>
+								<div className="elemental-details">
+									<p>
+										<strong>Planetary Hour:</strong> {getPlanetEmoji(elementalProfile.planetaryHour)} {elementalProfile.planetaryHour} ({planetToElementName(elementalProfile.planetaryHour)})
+									</p>
+									<p>
+										<strong>Current Tattva:</strong> {tattvaToName(elementalProfile.tattva)} ({tattvaToElementName(elementalProfile.tattva)})
+									</p>
+									{elementalProfile.moonSign && (
+										<p>
+											<strong>Moon Sign:</strong> {elementalProfile.moonSign} ({SIGN_ELEMENTS[elementalProfile.moonSign]})
+										</p>
+									)}
+								</div>
+							</div>
+						</div>
+					)}
+
 					{/* Alignments Section */}
 					{alignments.length > 0 && (
 						<div className="alignments-section">

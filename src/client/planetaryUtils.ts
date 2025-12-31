@@ -104,7 +104,26 @@ const ZODIAC_SIGNS: ZodiacSign[] = [
 ];
 
 // Element associations for signs
-export type Element = "Fire" | "Earth" | "Air" | "Water";
+export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
+
+export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
+
+export interface ElementalProfile {
+	fire: number;
+	earth: number;
+	air: number;
+	water: number;
+	spirit: number;
+	planetaryHour: Planet;
+	tattva: Tattva;
+	moonSign?: ZodiacSign;
+}
+
+export interface Location {
+	latitude: number;
+	longitude: number;
+	zipCode?: string;
+}
 
 export const SIGN_ELEMENTS: Record<ZodiacSign, Element> = {
 	Aries: "Fire",
@@ -329,6 +348,267 @@ export function getHourRuler(date: Date): Planet {
 	const hoursSinceMidnight = date.getHours();
 	const hourIndex = hoursSinceMidnight % 7;
 	return chaldeanOrder[hourIndex];
+}
+
+// Calculate sunrise and sunset times using Swiss Ephemeris
+export async function calculateSunriseSunset(
+	date: Date,
+	latitude: number,
+	longitude: number
+): Promise<{ sunrise: Date; sunset: Date }> {
+	const swe = await initSwissEphemeris();
+	
+	// Get Julian Day for the date at noon (local time)
+	const year = date.getFullYear();
+	const month = date.getMonth() + 1;
+	const day = date.getDate();
+	const julianDay = swe.swe_julday(year, month, day, 12.0, 1);
+	
+	// Calculate sunrise (SE_CALC_RISE = 1)
+	// swe_rise_trans returns { flag, error, data } where data is the Julian Day
+	const sunriseResult = swe.swe_rise_trans(
+		julianDay,
+		0, // Sun
+		null, // No star name
+		0, // No special flags
+		1, // SE_CALC_RISE
+		[longitude, latitude, 0], // [longitude, latitude, elevation]
+		1013.25, // Standard atmospheric pressure (mbar)
+		15.0 // Standard temperature (celsius)
+	);
+	
+	// Calculate sunset (SE_CALC_SET = 2)
+	const sunsetResult = swe.swe_rise_trans(
+		julianDay,
+		0, // Sun
+		null,
+		0,
+		2, // SE_CALC_SET
+		[longitude, latitude, 0],
+		1013.25,
+		15.0
+	);
+	
+	// Check for errors
+	if (sunriseResult.flag < 0 || sunsetResult.flag < 0) {
+		throw new Error(`Sunrise/sunset calculation error: ${sunriseResult.error || sunsetResult.error}`);
+	}
+	
+	// Convert Julian Day back to Date
+	const sunriseDate = await julianDayToDate(sunriseResult.data);
+	const sunsetDate = await julianDayToDate(sunsetResult.data);
+	
+	return { sunrise: sunriseDate, sunset: sunsetDate };
+}
+
+// Convert Julian Day to Date
+async function julianDayToDate(jd: number): Promise<Date> {
+	const swe = await initSwissEphemeris();
+	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
+	const hour = result.hour || 0;
+	const minute = Math.floor((hour % 1) * 60);
+	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
+	return new Date(result.year, result.month - 1, result.day, Math.floor(hour), minute, second);
+}
+
+// Get Planetary Hour based on sunrise/sunset
+export function getPlanetaryHour(
+	currentTime: Date,
+	sunrise: Date,
+	sunset: Date
+): { hour: number; ruler: Planet; isDay: boolean } {
+	const isDay = currentTime >= sunrise && currentTime < sunset;
+	
+	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
+	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
+	
+	let hourLength: number;
+	let timeSinceStart: number;
+	
+	if (isDay) {
+		// Day hours: from sunrise to sunset, divided into 12
+		const dayLength = sunset.getTime() - sunrise.getTime();
+		hourLength = dayLength / 12;
+		timeSinceStart = currentTime.getTime() - sunrise.getTime();
+	} else {
+		// Night hours: from sunset to next sunrise, divided into 12
+		const nextSunrise = new Date(sunrise);
+		nextSunrise.setDate(nextSunrise.getDate() + 1);
+		const nightLength = nextSunrise.getTime() - sunset.getTime();
+		hourLength = nightLength / 12;
+		timeSinceStart = currentTime.getTime() - sunset.getTime();
+		if (timeSinceStart < 0) {
+			// Before sunset, use previous night
+			const prevSunset = new Date(sunset);
+			prevSunset.setDate(prevSunset.getDate() - 1);
+			timeSinceStart = currentTime.getTime() - prevSunset.getTime();
+		}
+	}
+	
+	const hourNumber = Math.floor(timeSinceStart / hourLength);
+	const dayOfWeek = currentTime.getDay();
+	
+	// First hour of day is ruled by the day ruler
+	const dayRulers: Planet[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+	const dayRuler = dayRulers[dayOfWeek];
+	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
+	
+	// Calculate which planet rules this hour
+	const hourIndex = (dayRulerIndex + hourNumber) % 7;
+	const ruler = chaldeanOrder[hourIndex];
+	
+	return { hour: hourNumber + 1, ruler, isDay };
+}
+
+// Get Tattva for current time (2-hour cycles starting at sunrise, 24-minute sub-periods)
+export function getTattva(currentTime: Date, sunrise: Date): Tattva {
+	const timeSinceSunrise = currentTime.getTime() - sunrise.getTime();
+	const minutesSinceSunrise = timeSinceSunrise / (1000 * 60);
+	
+	// Tattva cycle is 2 hours (120 minutes), repeating
+	const cyclePosition = minutesSinceSunrise % 120;
+	
+	// Each tattva is 24 minutes
+	if (cyclePosition < 24) return "Akasha";
+	if (cyclePosition < 48) return "Vayu";
+	if (cyclePosition < 72) return "Tejas";
+	if (cyclePosition < 96) return "Apas";
+	return "Prithvi";
+}
+
+// Map planet to element
+function planetToElement(planet: Planet): Element {
+	switch (planet) {
+		case "Sun":
+		case "Mars":
+			return "Fire";
+		case "Mercury":
+		case "Jupiter":
+			return "Air";
+		case "Venus":
+			return "Water"; // Can also be Earth, but using Water per tradition
+		case "Saturn":
+			return "Earth";
+		case "Moon":
+			return "Water";
+	}
+}
+
+// Map Tattva to element
+function tattvaToElement(tattva: Tattva): Element {
+	switch (tattva) {
+		case "Akasha":
+			return "Spirit";
+		case "Vayu":
+			return "Air";
+		case "Tejas":
+			return "Fire";
+		case "Apas":
+			return "Water";
+		case "Prithvi":
+			return "Earth";
+	}
+}
+
+// Calculate elemental profile using 60/40 split (Planetary Hour 60%, Tattva 40%)
+export async function calculateElementalProfile(
+	date: Date,
+	location: Location
+): Promise<ElementalProfile> {
+	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
+	
+	const planetaryHour = getPlanetaryHour(date, sunrise, sunset);
+	const tattva = getTattva(date, sunrise);
+	
+	const hourElement = planetToElement(planetaryHour.ruler);
+	const tattvaElement = tattvaToElement(tattva);
+	
+	// Get Moon sign for triple key calculation
+	const dignities = await getAllPlanetaryDignities(date);
+	const moonDignity = dignities.find(d => d.planet === "Moon");
+	const moonSign = moonDignity?.sign;
+	const moonElement = moonSign ? SIGN_ELEMENTS[moonSign] : undefined;
+	
+	// Calculate percentages: 60% Planetary Hour, 40% Tattva
+	// Optional: 20% Moon Sign, 40% Hour, 40% Tattva (triple key)
+	const useTripleKey = moonElement !== undefined;
+	
+	const profile: ElementalProfile = {
+		fire: 0,
+		earth: 0,
+		air: 0,
+		water: 0,
+		spirit: 0,
+		planetaryHour: planetaryHour.ruler,
+		tattva,
+		moonSign,
+	};
+	
+	if (useTripleKey && moonElement) {
+		// Triple Key: Moon 20%, Hour 40%, Tattva 40%
+		addElement(profile, moonElement, 20);
+		addElement(profile, hourElement, 40);
+		addElement(profile, tattvaElement, 40);
+	} else {
+		// Standard: Hour 60%, Tattva 40%
+		addElement(profile, hourElement, 60);
+		addElement(profile, tattvaElement, 40);
+	}
+	
+	return profile;
+}
+
+function addElement(profile: ElementalProfile, element: Element, percentage: number) {
+	switch (element) {
+		case "Fire":
+			profile.fire += percentage;
+			break;
+		case "Earth":
+			profile.earth += percentage;
+			break;
+		case "Air":
+			profile.air += percentage;
+			break;
+		case "Water":
+			profile.water += percentage;
+			break;
+		case "Spirit":
+			profile.spirit += percentage;
+			break;
+	}
+}
+
+// Simple zip code to lat/long lookup using free geocoding API
+export async function zipCodeToLocation(zipCode: string): Promise<Location | null> {
+	try {
+		// Use a free geocoding API (Nominatim OpenStreetMap)
+		const response = await fetch(
+			`https://nominatim.openstreetmap.org/search?postalcode=${zipCode}&format=json&limit=1`,
+			{
+				headers: {
+					'User-Agent': 'Aterica Planetary App'
+				}
+			}
+		);
+		
+		if (!response.ok) {
+			return null;
+		}
+		
+		const data = await response.json();
+		if (data && data.length > 0) {
+			return {
+				latitude: parseFloat(data[0].lat),
+				longitude: parseFloat(data[0].lon),
+				zipCode,
+			};
+		}
+		
+		return null;
+	} catch (error) {
+		console.error("Error geocoding zip code:", error);
+		return null;
+	}
 }
 
 // Calculate angular distance between two longitudes (0-180°)
