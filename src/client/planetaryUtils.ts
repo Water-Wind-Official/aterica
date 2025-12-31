@@ -133,6 +133,7 @@ export interface UpcomingEvent {
 	name: string;
 	date: Date;
 	description: string;
+	visibility?: string; // For meteor showers - where they're visible
 }
 
 // Initialize Swiss Ephemeris (call this once, cache the result)
@@ -490,14 +491,50 @@ export async function getUpcomingEvents(startDate: Date, daysAhead: number = 365
 		}
 	}
 	
-	// Add major meteor showers (approximate dates)
+	// Add major meteor showers (approximate dates) with visibility information
 	const meteorShowers = [
-		{ name: "Quadrantids", month: 0, day: 3, description: "Peak meteor shower in January" },
-		{ name: "Lyrids", month: 3, day: 22, description: "Spring meteor shower" },
-		{ name: "Perseids", month: 7, day: 12, description: "Most popular summer meteor shower" },
-		{ name: "Orionids", month: 9, day: 21, description: "Autumn meteor shower" },
-		{ name: "Leonids", month: 10, day: 17, description: "November meteor shower" },
-		{ name: "Geminids", month: 11, day: 14, description: "Peak winter meteor shower" },
+		{ 
+			name: "Quadrantids", 
+			month: 0, 
+			day: 3, 
+			description: "Peak meteor shower in January",
+			visibility: "Best visible in Northern Hemisphere. Radiant point in Bootes constellation. Visible from North America, Europe, and Asia. Best viewing: Late night to dawn, away from city lights."
+		},
+		{ 
+			name: "Lyrids", 
+			month: 3, 
+			day: 22, 
+			description: "Spring meteor shower",
+			visibility: "Visible from both hemispheres, but best in Northern Hemisphere. Radiant point in Lyra constellation. Best viewing: After midnight, especially in rural areas with dark skies."
+		},
+		{ 
+			name: "Perseids", 
+			month: 7, 
+			day: 12, 
+			description: "Most popular summer meteor shower",
+			visibility: "Best visible in Northern Hemisphere. Radiant point in Perseus constellation. Excellent visibility from North America, Europe, and Asia. Best viewing: Late evening to dawn, peak around 2-3 AM local time."
+		},
+		{ 
+			name: "Orionids", 
+			month: 9, 
+			day: 21, 
+			description: "Autumn meteor shower",
+			visibility: "Visible from both hemispheres. Radiant point in Orion constellation. Best viewing: After midnight in both Northern and Southern Hemispheres. Good visibility worldwide."
+		},
+		{ 
+			name: "Leonids", 
+			month: 10, 
+			day: 17, 
+			description: "November meteor shower",
+			visibility: "Visible from both hemispheres. Radiant point in Leo constellation. Best viewing: After midnight. Can produce meteor storms every 33 years. Good visibility worldwide."
+		},
+		{ 
+			name: "Geminids", 
+			month: 11, 
+			day: 14, 
+			description: "Peak winter meteor shower",
+			visibility: "Visible from both hemispheres, excellent in Northern Hemisphere. Radiant point in Gemini constellation. Best viewing: Around 2 AM local time. One of the most reliable showers, visible worldwide with peak rates of 100+ meteors per hour."
+		},
 	];
 	
 	meteorShowers.forEach(shower => {
@@ -511,6 +548,7 @@ export async function getUpcomingEvents(startDate: Date, daysAhead: number = 365
 				name: shower.name,
 				date: eventDate,
 				description: shower.description,
+				visibility: shower.visibility,
 			});
 		}
 	});

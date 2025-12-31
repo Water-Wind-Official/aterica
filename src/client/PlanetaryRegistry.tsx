@@ -322,12 +322,30 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 							<h3>Upcoming Astrological Events</h3>
 							<div className="events-list">
 								{upcomingEvents.slice(0, 5).map((event, idx) => (
-									<div key={idx} className="event-card">
+									<div 
+										key={idx} 
+										className="event-card"
+										onMouseEnter={(e) => {
+											if (event.type === "Meteor Shower" && event.visibility) {
+												showTooltip(event.visibility || "", e);
+											}
+										}}
+										onMouseLeave={() => {
+											if (event.type === "Meteor Shower") {
+												hideTooltip();
+											}
+										}}
+									>
 										<div className="event-header">
 											<span className="event-type">{event.type}</span>
 											<span className="event-date">{formatEventDate(event.date)}</span>
 										</div>
-										<h4 className="event-name">{event.name}</h4>
+										<h4 className="event-name">
+											{event.name}
+											{event.type === "Meteor Shower" && (
+												<span className="visibility-indicator" title="Hover for visibility information"> 👁️</span>
+											)}
+										</h4>
 										<p className="event-description">{event.description}</p>
 									</div>
 								))}
