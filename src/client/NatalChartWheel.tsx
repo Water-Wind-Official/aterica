@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import { type PlanetaryDignity, type Planet, type ZodiacSign, ZODIAC_SIGNS, SIGN_ELEMENTS, type HouseCusps, calculateHouseCusps, type Location } from "./planetaryUtils";
 
 interface NatalChartWheelProps {
@@ -8,7 +8,7 @@ interface NatalChartWheelProps {
 	onPlanetHover?: (planet: PlanetaryDignity | null, event: React.MouseEvent) => void;
 }
 
-export function NatalChartWheel({ dignities, date, location, onPlanetHover }: NatalChartWheelProps) {
+export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, location, onPlanetHover }: NatalChartWheelProps) {
 	const [houseCusps, setHouseCusps] = React.useState<HouseCusps | null>(null);
 	const [isLoadingHouses, setIsLoadingHouses] = React.useState(true);
 
@@ -428,4 +428,37 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 			)}
 		</div>
 	);
-}
+}, (prevProps, nextProps) => {
+	// Custom comparison function to prevent re-renders when tooltip state changes
+	// Only re-render if dignities, date, or location actually change
+	
+	// Compare dignities arrays by checking length and each element
+	if (prevProps.dignities.length !== nextProps.dignities.length) {
+		return false; // Re-render if lengths differ
+	}
+	
+	for (let i = 0; i < prevProps.dignities.length; i++) {
+		const prev = prevProps.dignities[i];
+		const next = nextProps.dignities[i];
+		if (prev.planet !== next.planet || 
+		    prev.longitude !== next.longitude ||
+		    prev.sign !== next.sign ||
+		    prev.isRetrograde !== next.isRetrograde) {
+			return false; // Re-render if any planet data changed
+		}
+	}
+	
+	// Compare dates
+	if (prevProps.date.getTime() !== nextProps.date.getTime()) {
+		return false; // Re-render if date changed
+	}
+	
+	// Compare location
+	if (prevProps.location?.latitude !== nextProps.location?.latitude ||
+	    prevProps.location?.longitude !== nextProps.location?.longitude) {
+		return false; // Re-render if location changed
+	}
+	
+	// Props are equal, skip re-render
+	return true;
+});
