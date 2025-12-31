@@ -576,12 +576,19 @@ a {
 	margin-bottom: 12px;
 	padding-bottom: 8px;
 	border-bottom: 1px solid #333;
+	gap: 10px;
+}
+
+.zodiac-dash-symbol {
+	font-size: 1.8rem;
+	line-height: 1;
 }
 
 .zodiac-dash-sign {
 	font-size: 1.1rem;
 	font-weight: 600;
 	color: white;
+	flex: 1;
 }
 
 .zodiac-dash-element {

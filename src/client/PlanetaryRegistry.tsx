@@ -183,18 +183,18 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const handleSignHover = useCallback((sign: ZodiacSign | null, event: React.MouseEvent) => {
 		if (sign) {
 			const signDescriptions: Record<ZodiacSign, string> = {
-				Aries: "The Ram - First sign of the zodiac. Represents new beginnings, initiative, courage, and assertiveness. Ruled by Mars. Fire element.",
-				Taurus: "The Bull - Represents stability, sensuality, material security, patience, and determination. Ruled by Venus. Earth element.",
-				Gemini: "The Twins - Represents communication, curiosity, adaptability, and duality. Ruled by Mercury. Air element.",
-				Cancer: "The Crab - Represents emotions, nurturing, home, family, and intuition. Ruled by the Moon. Water element.",
-				Leo: "The Lion - Represents creativity, confidence, self-expression, and leadership. Ruled by the Sun. Fire element.",
-				Virgo: "The Virgin - Represents analysis, service, perfectionism, and attention to detail. Ruled by Mercury. Earth element.",
-				Libra: "The Scales - Represents balance, harmony, relationships, and diplomacy. Ruled by Venus. Air element.",
-				Scorpio: "The Scorpion - Represents transformation, intensity, depth, and mystery. Ruled by Mars (traditional) and Pluto (modern). Water element.",
-				Sagittarius: "The Archer - Represents adventure, philosophy, expansion, and freedom. Ruled by Jupiter. Fire element.",
-				Capricorn: "The Goat - Represents ambition, discipline, structure, and achievement. Ruled by Saturn. Earth element.",
-				Aquarius: "The Water Bearer - Represents innovation, independence, humanitarianism, and originality. Ruled by Saturn (traditional) and Uranus (modern). Air element.",
-				Pisces: "The Fish - Represents intuition, compassion, spirituality, and dreams. Ruled by Jupiter (traditional) and Neptune (modern). Water element.",
+				Aries: "The Ram - First sign of the zodiac. Represents new beginnings, initiative, courage, and assertiveness. Ruled by Mars.",
+				Taurus: "The Bull - Represents stability, sensuality, material security, patience, and determination. Ruled by Venus.",
+				Gemini: "The Twins - Represents communication, curiosity, adaptability, and duality. Ruled by Mercury.",
+				Cancer: "The Crab - Represents emotions, nurturing, home, family, and intuition. Ruled by the Moon.",
+				Leo: "The Lion - Represents creativity, confidence, self-expression, and leadership. Ruled by the Sun.",
+				Virgo: "The Virgin - Represents analysis, service, perfectionism, and attention to detail. Ruled by Mercury.",
+				Libra: "The Scales - Represents balance, harmony, relationships, and diplomacy. Ruled by Venus.",
+				Scorpio: "The Scorpion - Represents transformation, intensity, depth, and mystery. Ruled by Mars (traditional) and Pluto (modern).",
+				Sagittarius: "The Archer - Represents adventure, philosophy, expansion, and freedom. Ruled by Jupiter.",
+				Capricorn: "The Goat - Represents ambition, discipline, structure, and achievement. Ruled by Saturn.",
+				Aquarius: "The Water Bearer - Represents innovation, independence, humanitarianism, and originality. Ruled by Saturn (traditional) and Uranus (modern).",
+				Pisces: "The Fish - Represents intuition, compassion, spirituality, and dreams. Ruled by Jupiter (traditional) and Neptune (modern).",
 			};
 			showTooltip(signDescriptions[sign], event);
 		} else {
@@ -303,6 +303,25 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			Pisces: "intuitive, compassionate, dreamy",
 		};
 		return descriptions[sign];
+	};
+
+	// Get zodiac sign symbol
+	const getZodiacSymbol = (sign: ZodiacSign): string => {
+		const symbols: Record<ZodiacSign, string> = {
+			Aries: "♈",
+			Taurus: "♉",
+			Gemini: "♊",
+			Cancer: "♋",
+			Leo: "♌",
+			Virgo: "♍",
+			Libra: "♎",
+			Scorpio: "♏",
+			Sagittarius: "♐",
+			Capricorn: "♑",
+			Aquarius: "♒",
+			Pisces: "♓",
+		};
+		return symbols[sign];
 	};
 
 	// Get planet interpretation for zodiac dash (simplified)
@@ -1066,6 +1085,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 											style={{ cursor: 'pointer', borderLeft: `3px solid ${elementColor}` }}
 										>
 											<div className="zodiac-dash-header">
+												<span className="zodiac-dash-symbol">{getZodiacSymbol(sign)}</span>
 												<span className="zodiac-dash-sign" style={{ color: elementColor }}>
 													{sign}
 												</span>
