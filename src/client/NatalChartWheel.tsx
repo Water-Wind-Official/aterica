@@ -7,9 +7,11 @@ interface NatalChartWheelProps {
 	location: Location | null;
 	onPlanetHover?: (planet: PlanetaryDignity | null, interpretation: string | null, event: React.MouseEvent) => void;
 	onAngularPointHover?: (point: { name: string; description: string; longitude: number; sign: ZodiacSign } | null, event: React.MouseEvent) => void;
+	onSignHover?: (sign: ZodiacSign | null, event: React.MouseEvent) => void;
+	onHouseHover?: (house: number | null, event: React.MouseEvent) => void;
 }
 
-export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, location, onPlanetHover, onAngularPointHover }: NatalChartWheelProps) {
+export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, location, onPlanetHover, onAngularPointHover, onSignHover, onHouseHover }: NatalChartWheelProps) {
 	const [houseCusps, setHouseCusps] = React.useState<HouseCusps | null>(null);
 	const [isLoadingHouses, setIsLoadingHouses] = React.useState(true);
 
@@ -103,7 +105,18 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 			const color = getElementColor(element);
 
 			return (
-				<g key={sign}>
+				<g 
+					key={sign}
+					onMouseEnter={(e) => {
+						e.stopPropagation();
+						onSignHover?.(sign, e);
+					}}
+					onMouseLeave={(e) => {
+						e.stopPropagation();
+						onSignHover?.(null, e);
+					}}
+					style={{ cursor: 'pointer' }}
+				>
 					<text
 						x={x}
 						y={y}
@@ -118,7 +131,7 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 				</g>
 			);
 		});
-	}, [longitudeToAngle, angleToCoords, outerRadius]);
+	}, [longitudeToAngle, angleToCoords, outerRadius, onSignHover]);
 
 	// Render house cusps
 	const houseLines = useMemo(() => {
@@ -327,6 +340,25 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 		});
 	}, [dignities, longitudeToAngle, angleToCoords, planetRadius]);
 
+	// Get house description
+	const getHouseDescription = (house: number): string => {
+		const houseDescriptions: Record<number, string> = {
+			1: "1st House - The House of Self\n\nRepresents your identity, appearance, first impressions, and how you present yourself to the world. The Ascendant (rising sign) is the cusp of this house. Planets here influence your personality, physical body, and approach to new beginnings.",
+			2: "2nd House - The House of Possessions\n\nRepresents your material resources, values, money, possessions, and sense of security. Planets here show how you earn and manage money, what you value, and your relationship with material things.",
+			3: "3rd House - The House of Communication\n\nRepresents communication, siblings, short trips, learning, writing, and your immediate environment. Planets here influence how you think, communicate, and relate to siblings and neighbors.",
+			4: "4th House - The House of Home\n\nRepresents your home, family, roots, private life, and emotional foundation. The IC (Imum Coeli) is the cusp of this house. Planets here show your relationship with family, your home environment, and your deepest emotional needs.",
+			5: "5th House - The House of Creativity\n\nRepresents creativity, romance, children, self-expression, entertainment, and pleasure. Planets here influence your creative talents, love affairs, how you have fun, and your relationship with children.",
+			6: "6th House - The House of Health\n\nRepresents work, health, daily routines, service, and your approach to wellness. Planets here show your work environment, health habits, daily responsibilities, and how you serve others.",
+			7: "7th House - The House of Partnerships\n\nRepresents partnerships, marriage, relationships, contracts, and open enemies. The Descendant is the cusp of this house. Planets here influence your approach to relationships, what you seek in a partner, and how you relate to others.",
+			8: "8th House - The House of Transformation\n\nRepresents transformation, shared resources, death, rebirth, sexuality, and mysteries. Planets here show how you handle joint finances, deal with change, and your approach to deep psychological matters.",
+			9: "9th House - The House of Philosophy\n\nRepresents higher learning, philosophy, religion, long-distance travel, publishing, and beliefs. Planets here influence your worldview, spiritual beliefs, and quest for meaning and understanding.",
+			10: "10th House - The House of Career\n\nRepresents career, public image, reputation, authority, and life direction. The MC (Midheaven) is the cusp of this house. Planets here show your career path, public standing, and how you're seen by the world.",
+			11: "11th House - The House of Friendships\n\nRepresents friendships, groups, hopes, dreams, and humanitarian causes. Planets here influence your social circle, your ideals, and your involvement in community or group activities.",
+			12: "12th House - The House of the Subconscious\n\nRepresents the subconscious, hidden matters, spirituality, secrets, and self-undoing. Planets here show your hidden strengths and weaknesses, spiritual practices, and things that operate behind the scenes.",
+		};
+		return houseDescriptions[house] || `House ${house}`;
+	};
+
 	// Render house numbers
 	const houseNumbers = useMemo(() => {
 		if (!houseCusps) return null;
@@ -369,13 +401,23 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 					fontSize="13"
 					fill="#aaa"
 					fontWeight="bold"
-					style={{ pointerEvents: 'none', userSelect: 'none' }}
+					style={{ cursor: 'pointer', pointerEvents: 'auto', userSelect: 'none' }}
+					onMouseEnter={(e) => {
+						e.stopPropagation();
+						if (onHouseHover) {
+							onHouseHover(houseNumber, e);
+						}
+					}}
+					onMouseLeave={(e) => {
+						e.stopPropagation();
+						onHouseHover?.(null, e);
+					}}
 				>
 					{houseNumber}
 				</text>
 			);
 		});
-	}, [houseCusps, longitudeToAngle, angleToCoords, houseRadius]);
+	}, [houseCusps, longitudeToAngle, angleToCoords, houseRadius, onHouseHover]);
 
 	// Get Ascendant sign for display
 	const ascendantSign = houseCusps ? longitudeToSign(houseCusps.ascendant) : null;

@@ -172,6 +172,87 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		}
 	}, [showTooltip, hideTooltip]);
 
+	const handleSignHover = useCallback((sign: ZodiacSign | null, event: React.MouseEvent) => {
+		if (sign) {
+			const signDescriptions: Record<ZodiacSign, string> = {
+				Aries: "The Ram - First sign of the zodiac. Represents new beginnings, initiative, courage, and assertiveness. Ruled by Mars. Fire element.",
+				Taurus: "The Bull - Represents stability, sensuality, material security, patience, and determination. Ruled by Venus. Earth element.",
+				Gemini: "The Twins - Represents communication, curiosity, adaptability, and duality. Ruled by Mercury. Air element.",
+				Cancer: "The Crab - Represents emotions, nurturing, home, family, and intuition. Ruled by the Moon. Water element.",
+				Leo: "The Lion - Represents creativity, confidence, self-expression, and leadership. Ruled by the Sun. Fire element.",
+				Virgo: "The Virgin - Represents analysis, service, perfectionism, and attention to detail. Ruled by Mercury. Earth element.",
+				Libra: "The Scales - Represents balance, harmony, relationships, and diplomacy. Ruled by Venus. Air element.",
+				Scorpio: "The Scorpion - Represents transformation, intensity, depth, and mystery. Ruled by Mars (traditional) and Pluto (modern). Water element.",
+				Sagittarius: "The Archer - Represents adventure, philosophy, expansion, and freedom. Ruled by Jupiter. Fire element.",
+				Capricorn: "The Goat - Represents ambition, discipline, structure, and achievement. Ruled by Saturn. Earth element.",
+				Aquarius: "The Water Bearer - Represents innovation, independence, humanitarianism, and originality. Ruled by Saturn (traditional) and Uranus (modern). Air element.",
+				Pisces: "The Fish - Represents intuition, compassion, spirituality, and dreams. Ruled by Jupiter (traditional) and Neptune (modern). Water element.",
+			};
+			showTooltip(signDescriptions[sign], event);
+		} else {
+			hideTooltip();
+		}
+	}, [showTooltip, hideTooltip]);
+
+	const handleHouseHover = useCallback((house: number | null, event: React.MouseEvent) => {
+		if (house) {
+			const houseDescriptions: Record<number, string> = {
+				1: "1st House - The House of Self\n\nRepresents your identity, appearance, first impressions, and how you present yourself to the world. The Ascendant (rising sign) is the cusp of this house. Planets here influence your personality, physical body, and approach to new beginnings.",
+				2: "2nd House - The House of Possessions\n\nRepresents your material resources, values, money, possessions, and sense of security. Planets here show how you earn and manage money, what you value, and your relationship with material things.",
+				3: "3rd House - The House of Communication\n\nRepresents communication, siblings, short trips, learning, writing, and your immediate environment. Planets here influence how you think, communicate, and relate to siblings and neighbors.",
+				4: "4th House - The House of Home\n\nRepresents your home, family, roots, private life, and emotional foundation. The IC (Imum Coeli) is the cusp of this house. Planets here show your relationship with family, your home environment, and your deepest emotional needs.",
+				5: "5th House - The House of Creativity\n\nRepresents creativity, romance, children, self-expression, entertainment, and pleasure. Planets here influence your creative talents, love affairs, how you have fun, and your relationship with children.",
+				6: "6th House - The House of Health\n\nRepresents work, health, daily routines, service, and your approach to wellness. Planets here show your work environment, health habits, daily responsibilities, and how you serve others.",
+				7: "7th House - The House of Partnerships\n\nRepresents partnerships, marriage, relationships, contracts, and open enemies. The Descendant is the cusp of this house. Planets here influence your approach to relationships, what you seek in a partner, and how you relate to others.",
+				8: "8th House - The House of Transformation\n\nRepresents transformation, shared resources, death, rebirth, sexuality, and mysteries. Planets here show how you handle joint finances, deal with change, and your approach to deep psychological matters.",
+				9: "9th House - The House of Philosophy\n\nRepresents higher learning, philosophy, religion, long-distance travel, publishing, and beliefs. Planets here influence your worldview, spiritual beliefs, and quest for meaning and understanding.",
+				10: "10th House - The House of Career\n\nRepresents career, public image, reputation, authority, and life direction. The MC (Midheaven) is the cusp of this house. Planets here show your career path, public standing, and how you're seen by the world.",
+				11: "11th House - The House of Friendships\n\nRepresents friendships, groups, hopes, dreams, and humanitarian causes. Planets here influence your social circle, your ideals, and your involvement in community or group activities.",
+				12: "12th House - The House of the Subconscious\n\nRepresents the subconscious, hidden matters, spirituality, secrets, and self-undoing. Planets here show your hidden strengths and weaknesses, spiritual practices, and things that operate behind the scenes.",
+			};
+			showTooltip(houseDescriptions[house] || `House ${house}`, event);
+		} else {
+			hideTooltip();
+		}
+	}, [showTooltip, hideTooltip]);
+
+	// Get planet meanings for tooltips
+	const getPlanetMeaning = (planet: Planet): string => {
+		const planetMeanings: Record<Planet, string> = {
+			Sun: "The Sun represents your core identity, ego, life force, and vitality. It shows your essential self, how you shine, and what gives you energy and purpose.",
+			Moon: "The Moon represents your emotions, instincts, inner needs, and subconscious patterns. It shows how you process feelings, what makes you feel secure, and your emotional responses.",
+			Mercury: "Mercury represents communication, thinking, learning, and how you process information. It shows your mental style, how you express ideas, and your approach to learning and teaching.",
+			Venus: "Venus represents love, beauty, values, relationships, and what you find attractive. It shows your approach to love, your aesthetic preferences, and what you value in life.",
+			Mars: "Mars represents action, drive, energy, passion, and how you assert yourself. It shows your motivation, how you pursue goals, and your approach to conflict and competition.",
+			Jupiter: "Jupiter represents expansion, growth, philosophy, optimism, and abundance. It shows where you seek meaning, how you grow, and what brings you luck and opportunities.",
+			Saturn: "Saturn represents discipline, structure, limitations, responsibility, and life lessons. It shows where you face challenges, what you must work hard for, and areas requiring maturity and commitment.",
+		};
+		return planetMeanings[planet];
+	};
+
+	// Get alignment type implications
+	const getAlignmentImplications = (type: PlanetaryAlignment["type"]): string => {
+		const alignmentImplications: Record<PlanetaryAlignment["type"], string> = {
+			Conjunction: "Conjunction (0°)\n\nWhen planets are in conjunction, their energies blend and intensify. This creates a powerful fusion of their qualities, often making these planets work together as a unified force. The conjunction amplifies both planets' influences, creating a strong focus in the area of life they represent.",
+			Opposition: "Opposition (180°)\n\nOppositions create tension and polarity between planets. This aspect often manifests as internal conflict, external challenges, or a need to balance opposing forces. It can create awareness through contrast, requiring you to integrate or balance the energies of both planets.",
+			"Grand Trine": "Grand Trine (120° triangle)\n\nA Grand Trine forms when three planets create an equilateral triangle in the chart. This creates a harmonious flow of energy, often indicating natural talent, ease, and flow in the areas represented. However, it can also lead to complacency if not actively engaged.",
+			"T-Square": "T-Square (90° + 180°)\n\nA T-Square forms when two planets oppose each other while both square a third planet. This creates dynamic tension and challenge, often driving action and growth. It indicates areas requiring effort, adjustment, and active problem-solving.",
+			"Grand Cross": "Grand Cross (90° square pattern)\n\nA Grand Cross forms when four planets create a square pattern with oppositions and squares. This creates intense pressure and multiple challenges, requiring significant effort to resolve. It often indicates a person with great potential who must work through complex obstacles.",
+			Stellium: "Stellium (3+ planets in one sign)\n\nA Stellium occurs when multiple planets cluster in the same zodiac sign. This creates an intense focus and emphasis on that sign's qualities. The sign's energy becomes dominant in the chart, creating both strengths and potential imbalances in that area of life.",
+			Linear: "Linear Alignment (planets in a line)\n\nWhen planets form a linear alignment, their energies flow in a sequential pattern. This can create a focused, directional energy flow, often indicating a clear path or progression in the areas of life these planets represent.",
+		};
+		return alignmentImplications[type];
+	};
+
+	// Handle alignment hover
+	const handleAlignmentHover = useCallback((alignment: PlanetaryAlignment, event: React.MouseEvent) => {
+		const alignmentInfo = getAlignmentImplications(alignment.type);
+		const planetInfo = alignment.planets.map(planet => `• ${planet}: ${getPlanetMeaning(planet)}`).join('\n\n');
+		
+		const tooltipContent = `${alignmentInfo}\n\nPlanets Involved:\n\n${planetInfo}`;
+		showTooltip(tooltipContent, event);
+	}, [showTooltip]);
+
 	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, interpretation: string | null, event: React.MouseEvent) => {
 		if (planet) {
 			// If interpretation is provided (from summary panel), use it
@@ -432,7 +513,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 
 	const tooltipContent = {
 		dignity: "Essential Dignity measures a planet's strength based on its zodiac sign. Domicile (🏠) = home, strongest. Exaltation (⭐) = honored guest. Detriment (🚫) = exile, weak. Fall (⬇️) = humiliated, weakest.",
-		score: "Energy score from -10 to +10. Positive = good vibes, negative = challenging. Based on Essential Dignity and retrograde status.",
 		retrograde: "When a planet appears to move backward. Generally weakens the planet's energy and can cause delays or reversals.",
 		element: "Each zodiac sign belongs to an element: Fire (action, passion), Earth (stability, practicality), Air (intellect, communication), Water (emotion, intuition).",
 		alignment: "Planetary alignments occur when planets form geometric patterns. Conjunctions = together, Oppositions = opposite, Linear = straight line formation.",
@@ -442,7 +522,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 
 	return (
 		<div className={`planetary-registry ${className || ""}`}>
-			<h2>Planetary Energy Registry</h2>
+			<h2>Astral Dashboard</h2>
 			
 			<div className="datetime-controls">
 				<div className="control-group">
@@ -747,10 +827,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								<div
 									key={dignity.planet}
 									className="planet-card"
-									style={{
-										borderColor: getScoreColor(dignity.score),
-										boxShadow: `0 0 20px ${getScoreColor(dignity.score)}40`,
-									}}
 								>
 									<div className="planet-header">
 										<span className="planet-emoji">{getPlanetEmoji(dignity.planet)}</span>
@@ -793,20 +869,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										)}
 									</div>
 
-									<div 
-										className="planet-score"
-										onMouseEnter={(e) => showTooltip(tooltipContent.score, e)}
-										onMouseLeave={hideTooltip}
-									>
-										<div
-											className="score-bar"
-											style={{
-												width: `${((dignity.score + 10) / 20) * 100}%`,
-												backgroundColor: getScoreColor(dignity.score),
-											}}
-										/>
-										<span className="score-value">{dignity.score > 0 ? "+" : ""}{dignity.score}</span>
-									</div>
 								</div>
 							);
 						})}
@@ -865,6 +927,8 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 							location={location}
 							onPlanetHover={handlePlanetHover}
 							onAngularPointHover={handleAngularPointHover}
+							onSignHover={handleSignHover}
+							onHouseHover={handleHouseHover}
 						/>
 					)}
 
@@ -883,7 +947,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 							</h3>
 							<div className="alignments-grid">
 								{alignments.map((alignment, idx) => (
-									<div key={idx} className="alignment-card">
+									<div 
+										key={idx} 
+										className="alignment-card"
+										onMouseEnter={(e) => handleAlignmentHover(alignment, e)}
+										onMouseLeave={hideTooltip}
+										style={{ cursor: 'pointer' }}
+									>
 										<div className="alignment-header">
 											<span className="alignment-type">{alignment.type}</span>
 											<span className="alignment-strength">{alignment.strength}%</span>
