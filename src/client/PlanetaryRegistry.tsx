@@ -85,9 +85,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 
 	useEffect(() => {
 		// Combine date and time
+		// Create date in local timezone, but calculations will convert to UTC as needed
 		const [hours, minutes] = selectedTime.split(":").map(Number);
 		const dateTime = new Date(selectedDate);
 		dateTime.setHours(hours, minutes, 0, 0);
+		
+		// Ensure we're using the exact date/time specified by the user
+		// Swiss Ephemeris will handle UTC conversion internally
 
 		setIsLoading(true);
 		setError(null);
@@ -107,7 +111,12 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				setUpcomingEvents(events);
 				setElementalProfile(profile);
 				setDayRuler(getDayRuler(dateTime));
-				setHourRuler(getHourRuler(dateTime));
+				// Use the planetary hour from the profile if available, otherwise fall back to simplified calculation
+				if (profile) {
+					setHourRuler(profile.planetaryHour);
+				} else {
+					setHourRuler(getHourRuler(dateTime));
+				}
 				setIsLoading(false);
 			})
 			.catch((err) => {

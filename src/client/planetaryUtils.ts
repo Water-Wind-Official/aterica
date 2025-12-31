@@ -212,7 +212,8 @@ async function getPlanetPosition(
 ): Promise<{ longitude: number; isRetrograde: boolean }> {
 	const planetNumber = PLANET_NUMBERS[planet];
 	
-	// Convert date to Julian Day
+	// Convert date to Julian Day using UTC (Swiss Ephemeris expects UTC)
+	// This ensures accurate planetary positions regardless of user's timezone
 	const year = date.getUTCFullYear();
 	const month = date.getUTCMonth() + 1; // Swiss Ephemeris uses 1-12
 	const day = date.getUTCDate();
