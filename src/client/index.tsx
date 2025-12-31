@@ -90,7 +90,7 @@ function App() {
 
 	return (
 		<div className="App">
-			<h1>Where's everyone at?</h1>
+			<h1>Aterica</h1>
 			{counter !== 0 ? (
 				<p>
 					<b>{counter}</b> {counter === 1 ? "person" : "people"} connected.
@@ -105,15 +105,22 @@ function App() {
 				style={{ width: 400, height: 400, maxWidth: "100%", aspectRatio: 1 }}
 			/>
 
-			{/* Let's give some credit */}
-			<p>
-				Powered by <a href="https://cobe.vercel.app/">🌏 Cobe</a>,{" "}
-				<a href="https://www.npmjs.com/package/phenomenon">Phenomenon</a> and{" "}
-				<a href="https://npmjs.com/package/partyserver/">🎈 PartyServer</a>
-			</p>
+
 		</div>
 	);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
 createRoot(document.getElementById("root")!).render(<App />);
+
+
+
+
+
+			{/* Let's give some credit later after production
+			<p>
+				Powered by <a href="https://cobe.vercel.app/">🌏 Cobe</a>,{" "}
+				<a href="https://www.npmjs.com/package/phenomenon">Phenomenon</a> and{" "}
+				<a href="https://npmjs.com/package/partyserver/">🎈 PartyServer</a>
+			</p>
+			*/}
