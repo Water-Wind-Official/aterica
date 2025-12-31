@@ -304,7 +304,8 @@ a {
 	z-index: 10000;
 	pointer-events: none;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-	line-height: 1.5;
+	line-height: 1.6;
+	white-space: pre-line;
 }
 
 .info-icon {

@@ -151,53 +151,121 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 		return diff;
 	};
 
-	// Render aspect lines between planets
+	// Find which house a planet is in based on its longitude
+	const getHouseForPlanet = (longitude: number): number | null => {
+		if (!houseCusps) return null;
+		
+		// Normalize longitude to 0-360
+		let normalizedLon = longitude % 360;
+		if (normalizedLon < 0) normalizedLon += 360;
+		
+		// Find which house this longitude falls into
+		for (let i = 0; i < 12; i++) {
+			const cusp1 = houseCusps.houses[i];
+			const cusp2 = houseCusps.houses[(i + 1) % 12];
+			
+			// Handle wrap-around for last house
+			if (i === 11) {
+				// Last house wraps around
+				if (normalizedLon >= cusp1 || normalizedLon < cusp2) {
+					return i + 1; // House 12
+				}
+			} else {
+				if (normalizedLon >= cusp1 && normalizedLon < cusp2) {
+					return i + 1; // Houses 1-11
+				}
+			}
+		}
+		
+		return null;
+	};
+
+	// Get degree within sign (0-29)
+	const getDegreeInSign = (longitude: number): number => {
+		const normalizedLon = longitude % 360;
+		return Math.floor(normalizedLon % 30);
+	};
+
+	// Render lines from planets to center
+	const planetToCenterLines = useMemo(() => {
+		return dignities.map((dignity) => {
+			const angle = longitudeToAngle(dignity.longitude);
+			const [x, y] = angleToCoords(angle, planetRadius);
+			
+			return (
+				<line
+					key={`planet-center-${dignity.planet}`}
+					x1={x}
+					y1={y}
+					x2={centerX}
+					y2={centerY}
+					stroke="#444"
+					strokeWidth="0.5"
+					opacity="0.2"
+				/>
+			);
+		});
+	}, [dignities, longitudeToAngle, angleToCoords, planetRadius]);
+
+	// Render aspect lines between ALL planets
 	const aspectLines = useMemo(() => {
 		const lines: JSX.Element[] = [];
 		const aspectTolerance = 8; // degrees tolerance for aspects
 		
-		// Major aspects: Conjunction (0°), Sextile (60°), Square (90°), Trine (120°), Opposition (180°)
+		// All major and minor aspects with appropriate colors
 		const aspects = [
-			{ angle: 0, name: 'Conjunction', color: '#888', strokeWidth: 0.3 },
-			{ angle: 60, name: 'Sextile', color: '#666', strokeWidth: 0.3 },
-			{ angle: 90, name: 'Square', color: '#666', strokeWidth: 0.3 },
-			{ angle: 120, name: 'Trine', color: '#666', strokeWidth: 0.3 },
-			{ angle: 180, name: 'Opposition', color: '#888', strokeWidth: 0.3 },
+			{ angle: 0, name: 'Conjunction', color: '#666', strokeWidth: 0.5, opacity: 0.4 }, // Gray for conjunctions
+			{ angle: 30, name: 'Semi-Sextile', color: '#888', strokeWidth: 0.3, opacity: 0.3 }, // Light gray
+			{ angle: 45, name: 'Semi-Square', color: '#ff6b6b', strokeWidth: 0.3, opacity: 0.3 }, // Light red
+			{ angle: 60, name: 'Sextile', color: '#4ecdc4', strokeWidth: 0.4, opacity: 0.4 }, // Cyan/blue for harmonious
+			{ angle: 72, name: 'Quintile', color: '#95e1d3', strokeWidth: 0.3, opacity: 0.3 }, // Light green
+			{ angle: 90, name: 'Square', color: '#ff6b6b', strokeWidth: 0.5, opacity: 0.5 }, // Red for challenging
+			{ angle: 120, name: 'Trine', color: '#4ecdc4', strokeWidth: 0.5, opacity: 0.5 }, // Cyan/blue for harmonious
+			{ angle: 135, name: 'Sesquiquadrate', color: '#ff6b6b', strokeWidth: 0.3, opacity: 0.3 }, // Light red
+			{ angle: 150, name: 'Quincunx', color: '#ffa500', strokeWidth: 0.3, opacity: 0.3 }, // Orange
+			{ angle: 180, name: 'Opposition', color: '#ff6b6b', strokeWidth: 0.5, opacity: 0.5 }, // Red for challenging
 		];
 
 		for (let i = 0; i < dignities.length; i++) {
 			for (let j = i + 1; j < dignities.length; j++) {
 				const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
 				
-				// Check each aspect
+				// Check each aspect and draw the closest matching one
+				let bestAspect = null;
+				let bestDist = Infinity;
+				
 				for (const aspect of aspects) {
 					const aspectDist = Math.abs(dist - aspect.angle);
-					if (aspectDist <= aspectTolerance) {
-						const angle1 = longitudeToAngle(dignities[i].longitude);
-						const angle2 = longitudeToAngle(dignities[j].longitude);
-						const [x1, y1] = angleToCoords(angle1, planetRadius);
-						const [x2, y2] = angleToCoords(angle2, planetRadius);
-						
-						lines.push(
-							<line
-								key={`aspect-${i}-${j}-${aspect.angle}`}
-								x1={x1}
-								y1={y1}
-								x2={x2}
-								y2={y2}
-								stroke={aspect.color}
-								strokeWidth={aspect.strokeWidth}
-								opacity="0.3"
-							/>
-						);
-						break; // Only draw one aspect line per pair
+					if (aspectDist <= aspectTolerance && aspectDist < bestDist) {
+						bestDist = aspectDist;
+						bestAspect = aspect;
 					}
+				}
+				
+				if (bestAspect) {
+					const angle1 = longitudeToAngle(dignities[i].longitude);
+					const angle2 = longitudeToAngle(dignities[j].longitude);
+					const [x1, y1] = angleToCoords(angle1, planetRadius);
+					const [x2, y2] = angleToCoords(angle2, planetRadius);
+					
+					lines.push(
+						<line
+							key={`aspect-${i}-${j}-${bestAspect.angle}`}
+							x1={x1}
+							y1={y1}
+							x2={x2}
+							y2={y2}
+							stroke={bestAspect.color}
+							strokeWidth={bestAspect.strokeWidth}
+							opacity={bestAspect.opacity}
+						/>
+					);
 				}
 			}
 		}
 		
 		return lines;
-	}, [dignities]);
+	}, [dignities, longitudeToAngle, angleToCoords, planetRadius]);
 
 	// Render planets
 	const planets = useMemo(() => {
@@ -212,15 +280,13 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 					key={dignity.planet}
 					onMouseEnter={(e) => {
 						e.stopPropagation();
-						e.preventDefault();
 						onPlanetHover?.(dignity, e);
 					}}
 					onMouseLeave={(e) => {
 						e.stopPropagation();
-						e.preventDefault();
 						onPlanetHover?.(null, e);
 					}}
-					style={{ cursor: 'pointer', pointerEvents: 'all' }}
+					style={{ cursor: 'pointer' }}
 				>
 					<circle
 						cx={x}
@@ -256,7 +322,7 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 				</g>
 			);
 		});
-	}, [dignities, longitudeToAngle, angleToCoords, planetRadius, onPlanetHover]);
+	}, [dignities, longitudeToAngle, angleToCoords, planetRadius]);
 
 	// Render house numbers
 	const houseNumbers = useMemo(() => {
@@ -351,11 +417,14 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 							strokeWidth="1"
 						/>
 
+						{/* Aspect lines between planets - render first so they're behind everything */}
+						{aspectLines}
+
 						{/* House cusp lines */}
 						{houseLines}
 
-						{/* Aspect lines between planets */}
-						{aspectLines}
+						{/* Lines from planets to center */}
+						{planetToCenterLines}
 
 						{/* House numbers */}
 						{houseNumbers}

@@ -155,15 +155,52 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		setTooltip({ show: false, content: "", x: 0, y: 0 });
 	}, []);
 
+	// Format longitude to degrees and minutes
+	const formatLongitude = useCallback((longitude: number): string => {
+		const degrees = Math.floor(longitude);
+		const minutes = Math.floor((longitude - degrees) * 60);
+		return `${degrees}°${minutes.toString().padStart(2, '0')}'`;
+	}, []);
+
 	// Memoize planet hover handler to prevent re-renders
 	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, event: React.MouseEvent) => {
 		if (planet) {
-			const details = `${planet.planet} in ${planet.sign} (${SIGN_ELEMENTS[planet.sign]}) - ${planet.dignity}${planet.isRetrograde ? ' (Retrograde)' : ''}`;
+			// Get detailed information about the planet
+			const totalDegrees = formatLongitude(planet.longitude);
+			const signDegrees = planet.longitude % 30;
+			const signDeg = Math.floor(signDegrees);
+			const signMin = Math.floor((signDegrees - signDeg) * 60);
+			const element = SIGN_ELEMENTS[planet.sign];
+			const retrogradeText = planet.isRetrograde ? ' (Retrograde)' : '';
+			
+			// Find aspects to other planets
+			const aspects: string[] = [];
+			dignities.forEach(otherPlanet => {
+				if (otherPlanet.planet !== planet.planet) {
+					const dist = Math.abs(planet.longitude - otherPlanet.longitude);
+					const angularDist = dist > 180 ? 360 - dist : dist;
+					
+					if (angularDist <= 8) aspects.push(`${otherPlanet.planet} (Conjunction)`);
+					else if (Math.abs(angularDist - 30) <= 8) aspects.push(`${otherPlanet.planet} (Semi-Sextile)`);
+					else if (Math.abs(angularDist - 45) <= 8) aspects.push(`${otherPlanet.planet} (Semi-Square)`);
+					else if (Math.abs(angularDist - 60) <= 8) aspects.push(`${otherPlanet.planet} (Sextile)`);
+					else if (Math.abs(angularDist - 72) <= 8) aspects.push(`${otherPlanet.planet} (Quintile)`);
+					else if (Math.abs(angularDist - 90) <= 8) aspects.push(`${otherPlanet.planet} (Square)`);
+					else if (Math.abs(angularDist - 120) <= 8) aspects.push(`${otherPlanet.planet} (Trine)`);
+					else if (Math.abs(angularDist - 135) <= 8) aspects.push(`${otherPlanet.planet} (Sesquiquadrate)`);
+					else if (Math.abs(angularDist - 150) <= 8) aspects.push(`${otherPlanet.planet} (Quincunx)`);
+					else if (Math.abs(angularDist - 180) <= 8) aspects.push(`${otherPlanet.planet} (Opposition)`);
+				}
+			});
+			
+			const aspectsText = aspects.length > 0 ? `\n\nAspects: ${aspects.join(', ')}` : '';
+			
+			const details = `${planet.planet} ${totalDegrees} ${planet.sign}\n${signDeg}°${signMin.toString().padStart(2, '0')}' ${planet.sign} - ${planet.dignity}${retrogradeText}\n${element} Element${aspectsText}`;
 			showTooltip(details, event);
 		} else {
 			hideTooltip();
 		}
-	}, [showTooltip, hideTooltip]);
+	}, [showTooltip, hideTooltip, formatLongitude, dignities]);
 
 	const getScoreColor = (score: number): string => {
 		if (score >= 4) return "#4ade80";
