@@ -89,6 +89,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const dateTime = new Date(selectedDate);
 		dateTime.setHours(hours, minutes, 0, 0);
 
+		console.log(`[PlanetaryRegistry] Recalculating with:`);
+		console.log(`  selectedDate: ${selectedDate.toISOString()}`);
+		console.log(`  selectedTime: ${selectedTime}`);
+		console.log(`  dateTime: ${dateTime.toISOString()} (${dateTime.toString()})`);
+		console.log(`  location: ${location ? `Lat: ${location.latitude}, Long: ${location.longitude}` : 'null'}`);
+		console.log(`  selectedWeather: ${selectedWeather}`);
+
 		setIsLoading(true);
 		setError(null);
 
@@ -106,17 +113,28 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				setAlignments(detectAlignments(allDignities));
 				setUpcomingEvents(events);
 				setElementalProfile(profile);
-				setDayRuler(getDayRuler(dateTime));
-				// Use the planetary hour from the profile if available, otherwise fall back to simplified calculation
+				
+				// Always calculate day ruler from the actual date/time
+				const dayRuler = getDayRuler(dateTime);
+				setDayRuler(dayRuler);
+				console.log(`[PlanetaryRegistry] Day Ruler set to: ${dayRuler}`);
+				
+				// Use the planetary hour from the profile if available (which uses proper sunrise/sunset calculation)
+				// Otherwise fall back to simplified calculation (should rarely happen if location is set)
 				if (profile) {
-					setHourRuler(profile.planetaryHour);
+					const hourRuler = profile.planetaryHour;
+					setHourRuler(hourRuler);
+					console.log(`[PlanetaryRegistry] Hour Ruler from profile: ${hourRuler}`);
 				} else {
-					setHourRuler(getHourRuler(dateTime));
+					console.warn(`[PlanetaryRegistry] No profile available, using simplified hour calculation`);
+					const hourRuler = getHourRuler(dateTime);
+					setHourRuler(hourRuler);
+					console.log(`[PlanetaryRegistry] Hour Ruler from fallback: ${hourRuler}`);
 				}
 				setIsLoading(false);
 			})
 			.catch((err) => {
-				console.error("Error calculating planetary positions:", err);
+				console.error("[PlanetaryRegistry] Error calculating planetary positions:", err);
 				setError(err.message || "Failed to calculate planetary positions");
 				setIsLoading(false);
 			});

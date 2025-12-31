@@ -338,28 +338,39 @@ export async function getAllPlanetaryDignities(date: Date): Promise<PlanetaryDig
 	return results;
 }
 
-// Get day ruler
+// Get day ruler - uses the actual date's day of week
 export function getDayRuler(date: Date): Planet {
-	const dayOfWeek = date.getDay();
+	const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, etc.
 	const dayRulers: Planet[] = [
-		"Sun",   // Sunday
-		"Moon",  // Monday
-		"Mars",  // Tuesday
-		"Mercury", // Wednesday
-		"Jupiter", // Thursday
-		"Venus",   // Friday
-		"Saturn",  // Saturday
+		"Sun",     // Sunday (0)
+		"Moon",    // Monday (1)
+		"Mars",    // Tuesday (2)
+		"Mercury", // Wednesday (3)
+		"Jupiter", // Thursday (4)
+		"Venus",   // Friday (5)
+		"Saturn",  // Saturday (6)
 	];
-	return dayRulers[dayOfWeek];
+	const ruler = dayRulers[dayOfWeek];
+	console.log(`[getDayRuler] Date: ${date.toISOString()}, Day of week: ${dayOfWeek}, Ruler: ${ruler}`);
+	return ruler;
 }
 
-// Get planetary hour ruler (simplified - would need lat/long for accurate calculation)
+// Get planetary hour ruler (FALLBACK ONLY - should use getPlanetaryHour with location)
+// This is a simplified calculation that doesn't account for sunrise/sunset
 export function getHourRuler(date: Date): Planet {
+	console.warn(`[getHourRuler] Using simplified calculation without location! Date: ${date.toISOString()}`);
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
+	const dayRuler = getDayRuler(date);
+	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
+	
+	// Get hours since midnight (0-23)
 	const hoursSinceMidnight = date.getHours();
-	const hourIndex = hoursSinceMidnight % 7;
-	return chaldeanOrder[hourIndex];
+	// Simple approximation: each hour cycles through Chaldean order starting from day ruler
+	const hourIndex = (dayRulerIndex + hoursSinceMidnight) % 7;
+	const ruler = chaldeanOrder[hourIndex];
+	console.log(`[getHourRuler] Hours since midnight: ${hoursSinceMidnight}, Hour index: ${hourIndex}, Ruler: ${ruler}`);
+	return ruler;
 }
 
 // Calculate sunrise and sunset times using Swiss Ephemeris
@@ -449,22 +460,39 @@ export function getPlanetaryHour(
 	sunset: Date,
 	prevSunset?: Date
 ): { hour: number; ruler: Planet; isDay: boolean } {
+	console.log(`[getPlanetaryHour] START`);
+	console.log(`  currentTime: ${currentTime.toISOString()} (${currentTime.toString()})`);
+	console.log(`  sunrise: ${sunrise.toISOString()} (${sunrise.toString()})`);
+	console.log(`  sunset: ${sunset.toISOString()} (${sunset.toString()})`);
+	console.log(`  prevSunset: ${prevSunset ? prevSunset.toISOString() : 'undefined'}`);
+	
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
 	
+	// CRITICAL FIX: Use the ACTUAL DATE's day of week, not sunrise/sunset time's day
+	// The day ruler is based on the calendar day, not the time of sunrise/sunset
+	const actualDayOfWeek = currentTime.getDay();
+	const dayRulers: Planet[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
+	const dayRuler = dayRulers[actualDayOfWeek];
+	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
+	console.log(`  Actual date day of week: ${actualDayOfWeek} (${dayRuler})`);
+	
 	// Determine if we're in day or night period
 	const isDay = currentTime >= sunrise && currentTime < sunset;
+	console.log(`  isDay: ${isDay} (currentTime >= sunrise: ${currentTime >= sunrise}, currentTime < sunset: ${currentTime < sunset})`);
 	
 	let hourLength: number;
 	let timeSinceStart: number;
-	let startTime: Date;
+	let periodStart: Date;
 	
 	if (isDay) {
 		// Day hours: from sunrise to sunset, divided into 12
 		const dayLength = sunset.getTime() - sunrise.getTime();
+		console.log(`  Day length: ${dayLength}ms (${dayLength / (1000 * 60 * 60)} hours)`);
+		
 		if (dayLength <= 0) {
 			// Edge case: no daylight (polar regions during winter)
-			// Fall back to night calculation
+			console.warn(`  WARNING: No daylight detected, falling back to night calculation`);
 			const nightStart = prevSunset || (() => {
 				const ps = new Date(sunset);
 				ps.setDate(ps.getDate() - 1);
@@ -475,11 +503,11 @@ export function getPlanetaryHour(
 			const nightLength = nightEnd.getTime() - nightStart.getTime();
 			hourLength = nightLength / 12;
 			timeSinceStart = currentTime.getTime() - nightStart.getTime();
-			startTime = nightStart;
+			periodStart = nightStart;
 		} else {
 			hourLength = dayLength / 12;
 			timeSinceStart = currentTime.getTime() - sunrise.getTime();
-			startTime = sunrise;
+			periodStart = sunrise;
 		}
 	} else {
 		// Night hours: from sunset to next sunrise, divided into 12
@@ -489,7 +517,7 @@ export function getPlanetaryHour(
 		
 		if (currentTime < sunrise) {
 			// Before sunrise today - use previous night (yesterday's sunset to today's sunrise)
-			// Use prevSunset if provided (actual calculated sunset from yesterday), otherwise fall back
+			console.log(`  Before sunrise - using previous night`);
 			nightStart = prevSunset || (() => {
 				const ps = new Date(sunset);
 				ps.setDate(ps.getDate() - 1);
@@ -498,55 +526,60 @@ export function getPlanetaryHour(
 			nightEnd = sunrise;
 		} else {
 			// After sunset today - use current night (today's sunset to tomorrow's sunrise)
+			console.log(`  After sunset - using current night`);
 			nightStart = sunset;
 			nightEnd = new Date(sunrise);
 			nightEnd.setDate(nightEnd.getDate() + 1);
 		}
 		
 		const nightLength = nightEnd.getTime() - nightStart.getTime();
+		console.log(`  Night length: ${nightLength}ms (${nightLength / (1000 * 60 * 60)} hours)`);
+		
 		if (nightLength <= 0) {
 			// Edge case: no night (polar regions during summer)
-			// Fall back to day calculation
+			console.warn(`  WARNING: No night detected, falling back to day calculation`);
 			const dayLength = sunset.getTime() - sunrise.getTime();
 			hourLength = dayLength > 0 ? dayLength / 12 : 3600000; // Default to 1 hour if still invalid
 			timeSinceStart = currentTime.getTime() - sunrise.getTime();
-			startTime = sunrise;
+			periodStart = sunrise;
 		} else {
 			hourLength = nightLength / 12;
 			timeSinceStart = currentTime.getTime() - nightStart.getTime();
-			startTime = nightStart;
+			periodStart = nightStart;
 		}
 	}
+	
+	console.log(`  periodStart: ${periodStart.toISOString()}`);
+	console.log(`  hourLength: ${hourLength}ms (${hourLength / (1000 * 60)} minutes)`);
+	console.log(`  timeSinceStart: ${timeSinceStart}ms (${timeSinceStart / (1000 * 60)} minutes)`);
 	
 	// Calculate which hour we're in (0-11)
 	// Handle edge case where timeSinceStart might be negative due to timezone issues
 	if (timeSinceStart < 0) {
-		// If we're before the start time, we're in the previous period
-		// This shouldn't happen in normal operation, but handle it gracefully
+		console.warn(`  WARNING: timeSinceStart is negative (${timeSinceStart}), setting to 0`);
 		timeSinceStart = 0;
 	}
+	
 	// Ensure hourLength is valid (greater than 0)
 	if (hourLength <= 0 || !isFinite(hourLength)) {
-		// Fallback: use 1 hour (3600000 ms) if calculation is invalid
-		hourLength = 3600000;
+		console.warn(`  WARNING: Invalid hourLength (${hourLength}), using 1 hour fallback`);
+		hourLength = 3600000; // 1 hour in milliseconds
 	}
+	
 	const hourNumber = Math.floor(timeSinceStart / hourLength);
+	console.log(`  hourNumber (before clamp): ${hourNumber}`);
+	
 	// Clamp to valid range (0-11)
 	const clampedHourNumber = Math.max(0, Math.min(11, hourNumber));
-	
-	// Get the day of week for the start of the period (sunrise for day, sunset for night)
-	const periodStartDate = new Date(startTime);
-	const dayOfWeek = periodStartDate.getDay();
-	
-	// First hour of day is ruled by the day ruler
-	const dayRulers: Planet[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
-	const dayRuler = dayRulers[dayOfWeek];
-	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
+	console.log(`  clampedHourNumber: ${clampedHourNumber}`);
 	
 	// Calculate which planet rules this hour
 	// The first hour (0) is the day ruler, then we cycle through Chaldean order
 	const hourIndex = (dayRulerIndex + clampedHourNumber) % 7;
 	const ruler = chaldeanOrder[hourIndex];
+	
+	console.log(`  dayRulerIndex: ${dayRulerIndex}, hourIndex: ${hourIndex}, ruler: ${ruler}`);
+	console.log(`[getPlanetaryHour] END - Hour: ${clampedHourNumber + 1}, Ruler: ${ruler}, isDay: ${isDay}`);
 	
 	return { hour: clampedHourNumber + 1, ruler, isDay };
 }
@@ -608,19 +641,35 @@ export async function calculateElementalProfile(
 	location: Location,
 	weather: string | null = null
 ): Promise<ElementalProfile> {
+	console.log(`[calculateElementalProfile] START`);
+	console.log(`  date: ${date.toISOString()} (${date.toString()})`);
+	console.log(`  location: Lat ${location.latitude}, Long ${location.longitude}`);
+	
 	// Get sunrise and sunset for today
 	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
+	console.log(`  Calculated sunrise: ${sunrise.toISOString()} (${sunrise.toString()})`);
+	console.log(`  Calculated sunset: ${sunset.toISOString()} (${sunset.toString()})`);
 	
 	// If the time is before sunrise, we also need yesterday's sunset for night hours
 	let prevSunset = sunset;
 	if (date < sunrise) {
+		console.log(`  Date is before sunrise, calculating previous day's sunset`);
 		const prevDate = new Date(date);
 		prevDate.setDate(prevDate.getDate() - 1);
 		const prevDayTimes = await calculateSunriseSunset(prevDate, location.latitude, location.longitude);
 		prevSunset = prevDayTimes.sunset;
+		console.log(`  Previous sunset: ${prevSunset.toISOString()} (${prevSunset.toString()})`);
 	}
 	
+	console.log(`[calculateElementalProfile] Calling getPlanetaryHour with:`);
+	console.log(`  currentTime: ${date.toISOString()}`);
+	console.log(`  sunrise: ${sunrise.toISOString()}`);
+	console.log(`  sunset: ${sunset.toISOString()}`);
+	console.log(`  prevSunset: ${prevSunset ? prevSunset.toISOString() : 'undefined'}`);
+	
 	const planetaryHour = getPlanetaryHour(date, sunrise, sunset, prevSunset);
+	
+	console.log(`[calculateElementalProfile] Planetary hour result:`, planetaryHour);
 	const tattva = getTattva(date, sunrise);
 	
 	const tattvaElement = tattvaToElement(tattva);
