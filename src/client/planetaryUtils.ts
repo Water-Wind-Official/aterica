@@ -416,15 +416,16 @@ export async function calculateSunriseSunset(
 	return { sunrise: sunriseDate, sunset: sunsetDate };
 }
 
-// Convert Julian Day to Date (UTC)
+// Convert Julian Day to Date (local time)
+// Swiss Ephemeris swe_rise_trans returns times in local time for the location
 async function julianDayToDate(jd: number): Promise<Date> {
 	const swe = await initSwissEphemeris();
 	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
 	const hour = result.hour || 0;
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
-	// Create Date in UTC, then convert to local time for display
-	return new Date(Date.UTC(result.year, result.month - 1, result.day, Math.floor(hour), minute, second));
+	// Create Date in local time (not UTC) since Swiss Ephemeris returns local times
+	return new Date(result.year, result.month - 1, result.day, Math.floor(hour), minute, second);
 }
 
 // Get Planetary Hour based on sunrise/sunset
@@ -433,36 +434,54 @@ export function getPlanetaryHour(
 	sunrise: Date,
 	sunset: Date
 ): { hour: number; ruler: Planet; isDay: boolean } {
-	const isDay = currentTime >= sunrise && currentTime < sunset;
-	
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
 	
+	// Determine if we're in day or night period
+	const isDay = currentTime >= sunrise && currentTime < sunset;
+	
 	let hourLength: number;
 	let timeSinceStart: number;
+	let startTime: Date;
 	
 	if (isDay) {
 		// Day hours: from sunrise to sunset, divided into 12
 		const dayLength = sunset.getTime() - sunrise.getTime();
 		hourLength = dayLength / 12;
 		timeSinceStart = currentTime.getTime() - sunrise.getTime();
+		startTime = sunrise;
 	} else {
 		// Night hours: from sunset to next sunrise, divided into 12
-		const nextSunrise = new Date(sunrise);
-		nextSunrise.setDate(nextSunrise.getDate() + 1);
-		const nightLength = nextSunrise.getTime() - sunset.getTime();
-		hourLength = nightLength / 12;
-		timeSinceStart = currentTime.getTime() - sunset.getTime();
-		if (timeSinceStart < 0) {
-			// Before sunset, use previous night
-			const prevSunset = new Date(sunset);
-			prevSunset.setDate(prevSunset.getDate() - 1);
-			timeSinceStart = currentTime.getTime() - prevSunset.getTime();
+		// For night hours, we need to determine which night period we're in
+		let nightStart: Date;
+		let nightEnd: Date;
+		
+		if (currentTime < sunrise) {
+			// Before sunrise today - use previous night (yesterday's sunset to today's sunrise)
+			nightStart = new Date(sunset);
+			nightStart.setDate(nightStart.getDate() - 1);
+			nightEnd = sunrise;
+		} else {
+			// After sunset today - use current night (today's sunset to tomorrow's sunrise)
+			nightStart = sunset;
+			nightEnd = new Date(sunrise);
+			nightEnd.setDate(nightEnd.getDate() + 1);
 		}
+		
+		const nightLength = nightEnd.getTime() - nightStart.getTime();
+		hourLength = nightLength / 12;
+		timeSinceStart = currentTime.getTime() - nightStart.getTime();
+		startTime = nightStart;
 	}
 	
+	// Calculate which hour we're in (0-11)
 	const hourNumber = Math.floor(timeSinceStart / hourLength);
-	const dayOfWeek = currentTime.getDay();
+	// Clamp to valid range (0-11)
+	const clampedHourNumber = Math.max(0, Math.min(11, hourNumber));
+	
+	// Get the day of week for the start of the period (sunrise for day, sunset for night)
+	const periodStartDate = new Date(startTime);
+	const dayOfWeek = periodStartDate.getDay();
 	
 	// First hour of day is ruled by the day ruler
 	const dayRulers: Planet[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
@@ -470,10 +489,11 @@ export function getPlanetaryHour(
 	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
 	
 	// Calculate which planet rules this hour
-	const hourIndex = (dayRulerIndex + hourNumber) % 7;
+	// The first hour (0) is the day ruler, then we cycle through Chaldean order
+	const hourIndex = (dayRulerIndex + clampedHourNumber) % 7;
 	const ruler = chaldeanOrder[hourIndex];
 	
-	return { hour: hourNumber + 1, ruler, isDay };
+	return { hour: clampedHourNumber + 1, ruler, isDay };
 }
 
 // Get Tattva for current time (2-hour cycles starting at sunrise, 24-minute sub-periods)
