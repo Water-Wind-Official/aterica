@@ -427,9 +427,16 @@ export async function calculateSunriseSunset(
 		throw new Error(`Sunrise/sunset calculation error: ${sunriseResult.error || sunsetResult.error}`);
 	}
 	
+	console.log(`[calculateSunriseSunset] Sunrise result:`, sunriseResult);
+	console.log(`[calculateSunriseSunset] Sunset result:`, sunsetResult);
+	console.log(`[calculateSunriseSunset] Sunrise JD: ${sunriseResult.data}, Sunset JD: ${sunsetResult.data}`);
+	
 	// Convert Julian Day back to Date
 	const sunriseDate = await julianDayToDate(sunriseResult.data);
 	const sunsetDate = await julianDayToDate(sunsetResult.data);
+	
+	console.log(`[calculateSunriseSunset] Final sunrise: ${sunriseDate.toISOString()}`);
+	console.log(`[calculateSunriseSunset] Final sunset: ${sunsetDate.toISOString()}`);
 	
 	return { sunrise: sunriseDate, sunset: sunsetDate };
 }
@@ -442,14 +449,82 @@ export async function calculateSunriseSunset(
 async function julianDayToDate(jd: number): Promise<Date> {
 	const swe = await initSwissEphemeris();
 	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
-	const hour = result.hour || 0;
+	
+	console.log(`[julianDayToDate] Input JD: ${jd}, Result type:`, typeof result, `Result:`, result);
+	console.log(`[julianDayToDate] Result keys:`, result ? Object.keys(result) : 'null');
+	
+	// swe_revjul typically returns an object with year, month, day, hour properties
+	// But it might also be an array or have different structure
+	let year: number, month: number, day: number, hour: number;
+	
+	if (Array.isArray(result)) {
+		// Array format: [year, month, day, hour] or similar
+		year = result[0] || 0;
+		month = result[1] || 0;
+		day = result[2] || 0;
+		hour = result[3] || 0;
+	} else if (typeof result === 'object' && result !== null) {
+		// Try different possible property names
+		// Swiss Ephemeris might use different property names
+		year = result.year ?? result.y ?? result[0] ?? 0;
+		month = result.month ?? result.m ?? result[1] ?? 0;
+		day = result.day ?? result.d ?? result[2] ?? 0;
+		hour = result.hour ?? result.h ?? result[3] ?? 0;
+		
+		// If still zero, try accessing as array-like object
+		if (year === 0 && month === 0 && day === 0) {
+			const values = Object.values(result);
+			if (values.length >= 3) {
+				year = Number(values[0]) || 0;
+				month = Number(values[1]) || 0;
+				day = Number(values[2]) || 0;
+				hour = Number(values[3]) || 0;
+			}
+		}
+	} else {
+		console.error(`[julianDayToDate] Unexpected result type:`, typeof result, result);
+		throw new Error(`Invalid result from swe_revjul: ${JSON.stringify(result)}`);
+	}
+	
+	// Validate the extracted values
+	if (year < 1900 || year > 2100) {
+		console.error(`[julianDayToDate] Invalid year extracted: ${year}, full result:`, result);
+		// Try alternative: create date directly from Julian Day using standard formula
+		// JD to Gregorian date conversion
+		const jdInt = Math.floor(jd + 0.5);
+		const f = jd + 0.5 - jdInt;
+		let a = jdInt;
+		if (jdInt > 2299160) {
+			const alpha = Math.floor((jdInt - 1867216.25) / 36524.25);
+			a = jdInt + 1 + alpha - Math.floor(alpha / 4);
+		}
+		const b = a + 1524;
+		const c = Math.floor((b - 122.1) / 365.25);
+		const d = Math.floor(365.25 * c);
+		const e = Math.floor((b - d) / 30.6001);
+		
+		day = b - d - Math.floor(30.6001 * e) + f;
+		month = e < 14 ? e - 1 : e - 13;
+		year = month > 2 ? c - 4716 : c - 4715;
+		hour = (day % 1) * 24;
+		day = Math.floor(day);
+		
+		console.log(`[julianDayToDate] Used manual conversion: year=${year}, month=${month}, day=${day}, hour=${hour}`);
+	}
+	
 	const hourInt = Math.floor(hour);
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
+	
+	console.log(`[julianDayToDate] Final parsed: year=${year}, month=${month}, day=${day}, hour=${hourInt}, minute=${minute}, second=${second}`);
+	
 	// Swiss Ephemeris swe_rise_trans with longitude returns local solar time for that location
 	// Create Date in browser's local timezone - this ensures all dates are in the same timezone context
 	// for comparison purposes in getPlanetaryHour
-	return new Date(result.year, result.month - 1, result.day, hourInt, minute, second);
+	const date = new Date(year, month - 1, day, hourInt, minute, second);
+	console.log(`[julianDayToDate] Created Date: ${date.toISOString()} (${date.toString()})`);
+	
+	return date;
 }
 
 // Get Planetary Hour based on sunrise/sunset
