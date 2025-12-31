@@ -1291,3 +1291,151 @@ a {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
+
+/* Sanctum Network Footer */
+.sanctum-footer {
+	margin-top: 80px;
+	padding: 40px 20px;
+	background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 20%, rgba(0, 0, 0, 0.6) 100%);
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	position: relative;
+	overflow: hidden;
+}
+
+.sanctum-footer::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, 
+		transparent 0%, 
+		rgba(138, 43, 226, 0.3) 20%, 
+		rgba(75, 0, 130, 0.5) 50%, 
+		rgba(138, 43, 226, 0.3) 80%, 
+		transparent 100%
+	);
+	opacity: 0.6;
+	animation: shimmer 3s ease-in-out infinite;
+}
+
+.sanctum-footer::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, 
+		transparent 0%, 
+		rgba(138, 43, 226, 0.2) 20%, 
+		rgba(75, 0, 130, 0.4) 50%, 
+		rgba(138, 43, 226, 0.2) 80%, 
+		transparent 100%
+	);
+	opacity: 0.4;
+}
+
+@keyframes shimmer {
+	0%, 100% {
+		opacity: 0.3;
+	}
+	50% {
+		opacity: 0.8;
+	}
+}
+
+.footer-content {
+	max-width: 800px;
+	margin: 0 auto;
+	text-align: center;
+	position: relative;
+	z-index: 1;
+}
+
+.footer-text {
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 0.95rem;
+	margin: 0 0 12px 0;
+	letter-spacing: 0.5px;
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.sanctum-highlight {
+	color: rgba(138, 43, 226, 0.9);
+	font-weight: 600;
+	text-shadow: 0 0 10px rgba(138, 43, 226, 0.5), 0 0 20px rgba(138, 43, 226, 0.3);
+	letter-spacing: 1px;
+	position: relative;
+}
+
+.sanctum-highlight::after {
+	content: '';
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.6), transparent);
+	opacity: 0.7;
+}
+
+.footer-link {
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.9rem;
+	margin: 0;
+	letter-spacing: 0.3px;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.price-highlight {
+	color: rgba(255, 215, 0, 0.9);
+	font-weight: 700;
+	text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.footer-link-text {
+	color: rgba(138, 43, 226, 0.85);
+	text-decoration: none;
+	font-weight: 500;
+	transition: all 0.3s ease;
+	position: relative;
+	text-shadow: 0 0 8px rgba(138, 43, 226, 0.3);
+}
+
+.footer-link-text::before {
+	content: '';
+	position: absolute;
+	bottom: -2px;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(138, 43, 226, 0.5), transparent);
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+
+.footer-link-text:hover {
+	color: rgba(138, 43, 226, 1);
+	text-shadow: 0 0 12px rgba(138, 43, 226, 0.6), 0 0 20px rgba(138, 43, 226, 0.3);
+}
+
+.footer-link-text:hover::before {
+	opacity: 1;
+}
+
+@media (max-width: 768px) {
+	.sanctum-footer {
+		margin-top: 60px;
+		padding: 30px 15px;
+	}
+	
+	.footer-text {
+		font-size: 0.85rem;
+	}
+	
+	.footer-link {
+		font-size: 0.8rem;
+	}
+}
