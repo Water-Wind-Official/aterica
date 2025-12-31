@@ -16,6 +16,7 @@ import {
 	type ElementalProfile,
 	type Location,
 } from "./planetaryUtils";
+import { NatalChartWheel } from "./NatalChartWheel";
 
 interface PlanetaryRegistryProps {
 	className?: string;
@@ -59,7 +60,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			const defaultLoc = await zipCodeToLocation("90210");
 			if (defaultLoc) {
 				setLocation(defaultLoc);
-				console.log(`[PlanetaryRegistry] Default location set to 90210:`, defaultLoc);
 			}
 		};
 		
@@ -73,14 +73,9 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 						latitude: position.coords.latitude,
 						longitude: position.coords.longitude,
 					});
-					console.log(`[PlanetaryRegistry] Browser location detected:`, {
-						latitude: position.coords.latitude,
-						longitude: position.coords.longitude,
-					});
 				},
 				() => {
 					// User denied or error - that's okay, use default
-					console.log(`[PlanetaryRegistry] Browser location denied, using default 90210`);
 				}
 			);
 		}
@@ -106,13 +101,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const dateTime = new Date(selectedDate);
 		dateTime.setHours(hours, minutes, 0, 0);
 
-		console.log(`[PlanetaryRegistry] Recalculating with:`);
-		console.log(`  selectedDate: ${selectedDate.toISOString()}`);
-		console.log(`  selectedTime: ${selectedTime}`);
-		console.log(`  dateTime: ${dateTime.toISOString()} (${dateTime.toString()})`);
-		console.log(`  location: ${location ? `Lat: ${location.latitude}, Long: ${location.longitude}` : 'null'}`);
-		console.log(`  selectedWeather: ${selectedWeather}`);
-
 		setIsLoading(true);
 		setError(null);
 
@@ -134,19 +122,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				// Always calculate day ruler from the actual date/time
 				const dayRuler = getDayRuler(dateTime);
 				setDayRuler(dayRuler);
-				console.log(`[PlanetaryRegistry] Day Ruler set to: ${dayRuler}`);
 				
 				// Use the planetary hour from the profile if available (which uses proper sunrise/sunset calculation)
 				// Otherwise fall back to simplified calculation (should rarely happen if location is set)
 				if (profile) {
-					const hourRuler = profile.planetaryHour;
-					setHourRuler(hourRuler);
-					console.log(`[PlanetaryRegistry] Hour Ruler from profile: ${hourRuler}`);
+					setHourRuler(profile.planetaryHour);
 				} else {
-					console.warn(`[PlanetaryRegistry] No profile available, using simplified hour calculation`);
-					const hourRuler = getHourRuler(dateTime);
-					setHourRuler(hourRuler);
-					console.log(`[PlanetaryRegistry] Hour Ruler from fallback: ${hourRuler}`);
+					setHourRuler(getHourRuler(dateTime));
 				}
 				setIsLoading(false);
 			})
@@ -302,6 +284,36 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		});
 	};
 
+	// Check if an event is currently happening (based on selected date/time)
+	const isEventHappening = (event: UpcomingEvent): boolean => {
+		// Use the selected date/time for comparison
+		const [hours, minutes] = selectedTime.split(":").map(Number);
+		const currentDateTime = new Date(selectedDate);
+		currentDateTime.setHours(hours, minutes, 0, 0);
+		
+		const eventDate = new Date(event.date);
+		
+		// For solstices and equinoxes, consider them "happening" on the exact day
+		if (event.type === "Solstice" || event.type === "Equinox") {
+			const dayDiff = Math.abs(currentDateTime.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+			return dayDiff <= 1; // Within 1 day
+		}
+		
+		// For meteor showers, they typically span several days, so check if we're within the peak period
+		if (event.type === "Meteor Shower") {
+			const dayDiff = Math.abs(currentDateTime.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+			return dayDiff <= 3; // Within 3 days of peak
+		}
+		
+		// For eclipses and planetary alignments, check if within 24 hours
+		if (event.type === "Eclipse" || event.type === "Planetary Alignment") {
+			const hourDiff = Math.abs(currentDateTime.getTime() - eventDate.getTime()) / (1000 * 60 * 60);
+			return hourDiff <= 24; // Within 24 hours
+		}
+		
+		return false;
+	};
+
 	const planetToElementName = (planet: Planet): string => {
 		switch (planet) {
 			case "Sun":
@@ -338,7 +350,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		element: "Each zodiac sign belongs to an element: Fire (action, passion), Earth (stability, practicality), Air (intellect, communication), Water (emotion, intuition).",
 		alignment: "Planetary alignments occur when planets form geometric patterns. Conjunctions = together, Oppositions = opposite, Linear = straight line formation.",
 		dayRuler: "Each day of the week is ruled by a planet. The day ruler influences the overall energy of that day.",
-		hourRuler: "Each hour is ruled by a planet in Chaldean order. The hour ruler influences the energy of that specific time.",
+		hourRuler: "Each hour is ruled by a planet in Chaldean order. Planetary hours are location-specific (based on local sunrise/sunset), not timezone-based, so they vary by location even within the same timezone. The hour ruler influences the energy of that specific time.",
 	};
 
 	return (
@@ -718,21 +730,23 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 						<div className="events-section">
 							<h3>Upcoming Astrological Events</h3>
 							<div className="events-list">
-								{upcomingEvents.slice(0, 5).map((event, idx) => (
-									<div 
-										key={idx} 
-										className="event-card"
-										onMouseEnter={(e) => {
-											if (event.type === "Meteor Shower" && event.visibility) {
-												showTooltip(event.visibility || "", e);
-											}
-										}}
-										onMouseLeave={() => {
-											if (event.type === "Meteor Shower") {
-												hideTooltip();
-											}
-										}}
-									>
+								{upcomingEvents.slice(0, 5).map((event, idx) => {
+									const isHappening = isEventHappening(event);
+									return (
+										<div 
+											key={idx} 
+											className={`event-card ${isHappening ? 'event-happening' : ''}`}
+											onMouseEnter={(e) => {
+												if (event.type === "Meteor Shower" && event.visibility) {
+													showTooltip(event.visibility || "", e);
+												}
+											}}
+											onMouseLeave={() => {
+												if (event.type === "Meteor Shower") {
+													hideTooltip();
+												}
+											}}
+										>
 										<div className="event-header">
 											<span className="event-type">{event.type}</span>
 											<span className="event-date">{formatEventDate(event.date)}</span>
@@ -745,9 +759,32 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										</h4>
 										<p className="event-description">{event.description}</p>
 									</div>
-								))}
+									);
+								})}
 							</div>
 						</div>
+					)}
+
+					{/* Natal Chart Wheel Section */}
+					{dignities.length > 0 && (
+						<NatalChartWheel 
+							dignities={dignities}
+							date={(() => {
+								const [hours, minutes] = selectedTime.split(":").map(Number);
+								const dateTime = new Date(selectedDate);
+								dateTime.setHours(hours, minutes, 0, 0);
+								return dateTime;
+							})()}
+							location={location}
+							onPlanetHover={(planet, event) => {
+								if (planet) {
+									const details = `${planet.planet} in ${planet.sign} (${SIGN_ELEMENTS[planet.sign]}) - ${planet.dignity}${planet.isRetrograde ? ' (Retrograde)' : ''}`;
+									showTooltip(details, event);
+								} else {
+									hideTooltip();
+								}
+							}}
+						/>
 					)}
 
 					{/* Alignments Section */}

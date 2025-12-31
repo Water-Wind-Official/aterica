@@ -137,6 +137,12 @@ export interface Location {
 	zipCode?: string;
 }
 
+export interface HouseCusps {
+	houses: number[]; // 12 house cusps in degrees (0-360)
+	ascendant: number; // Ascendant longitude
+	mc: number; // Midheaven (MC) longitude
+}
+
 export const SIGN_ELEMENTS: Record<ZodiacSign, Element> = {
 	Aries: "Fire",
 	Taurus: "Earth",
@@ -350,15 +356,12 @@ export function getDayRuler(date: Date): Planet {
 		"Venus",   // Friday (5)
 		"Saturn",  // Saturday (6)
 	];
-	const ruler = dayRulers[dayOfWeek];
-	console.log(`[getDayRuler] Date: ${date.toISOString()}, Day of week: ${dayOfWeek}, Ruler: ${ruler}`);
-	return ruler;
+	return dayRulers[dayOfWeek];
 }
 
 // Get planetary hour ruler (FALLBACK ONLY - should use getPlanetaryHour with location)
 // This is a simplified calculation that doesn't account for sunrise/sunset
 export function getHourRuler(date: Date): Planet {
-	console.warn(`[getHourRuler] Using simplified calculation without location! Date: ${date.toISOString()}`);
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
 	const dayRuler = getDayRuler(date);
@@ -368,9 +371,7 @@ export function getHourRuler(date: Date): Planet {
 	const hoursSinceMidnight = date.getHours();
 	// Simple approximation: each hour cycles through Chaldean order starting from day ruler
 	const hourIndex = (dayRulerIndex + hoursSinceMidnight) % 7;
-	const ruler = chaldeanOrder[hourIndex];
-	console.log(`[getHourRuler] Hours since midnight: ${hoursSinceMidnight}, Hour index: ${hourIndex}, Ruler: ${ruler}`);
-	return ruler;
+	return chaldeanOrder[hourIndex];
 }
 
 // Calculate sunrise and sunset times using Swiss Ephemeris
@@ -381,16 +382,11 @@ export async function calculateSunriseSunset(
 ): Promise<{ sunrise: Date; sunset: Date }> {
 	const swe = await initSwissEphemeris();
 	
-	console.log(`[calculateSunriseSunset] Input date: ${date.toISOString()} (${date.toString()})`);
-	console.log(`[calculateSunriseSunset] Location: Lat ${latitude}, Long ${longitude}`);
-	
 	// Get the calendar day we want sunrise/sunset for (in the browser's local timezone)
 	// This is the date the user selected, not UTC
 	const localYear = date.getFullYear();
 	const localMonth = date.getMonth() + 1; // 1-12
 	const localDay = date.getDate();
-	
-	console.log(`[calculateSunriseSunset] Calendar day: ${localYear}-${localMonth}-${localDay}`);
 	
 	// Create a date at noon on the target calendar day in the browser's local timezone
 	// This ensures we're asking for sunrise/sunset for the correct day
@@ -402,10 +398,7 @@ export async function calculateSunriseSunset(
 	const day = targetDate.getUTCDate();
 	const hour = targetDate.getUTCHours() + targetDate.getUTCMinutes() / 60;
 	
-	console.log(`[calculateSunriseSunset] UT date for calculation: ${year}-${month}-${day} ${hour}:00`);
-	
 	const julianDay = swe.swe_julday(year, month, day, hour, 1);
-	console.log(`[calculateSunriseSunset] Julian Day for calculation: ${julianDay}`);
 	
 	// Calculate sunrise (SE_CALC_RISE = 1)
 	// swe_rise_trans returns { flag, error, data } where data is the Julian Day
@@ -431,9 +424,6 @@ export async function calculateSunriseSunset(
 		1013.25,
 		15.0
 	);
-	
-	console.log(`[calculateSunriseSunset] Sunrise result:`, sunriseResult);
-	console.log(`[calculateSunriseSunset] Sunset result:`, sunsetResult);
 	
 	// swe_rise_trans returns the Julian Day directly as a number, or as an object with flag/data properties
 	// Handle both cases
@@ -469,8 +459,6 @@ export async function calculateSunriseSunset(
 		throw new Error(`Unexpected sunset result format: ${JSON.stringify(sunsetResult)}`);
 	}
 	
-	console.log(`[calculateSunriseSunset] Sunrise JD: ${sunriseJD}, Sunset JD: ${sunsetJD}`);
-	
 	// Convert Julian Day back to Date
 	let sunriseDate = await julianDayToDate(sunriseJD);
 	let sunsetDate = await julianDayToDate(sunsetJD);
@@ -493,7 +481,6 @@ export async function calculateSunriseSunset(
 	    sunriseDate.getHours() < 6) {
 		// Sunrise is early morning next day - adjust to target day
 		sunriseDate = new Date(targetYear, targetMonth, targetDay, sunriseDate.getHours(), sunriseDate.getMinutes(), sunriseDate.getSeconds());
-		console.log(`[calculateSunriseSunset] Adjusted sunrise to target day: ${sunriseDate.toISOString()}`);
 	}
 	
 	if (sunsetDate.getFullYear() === targetYear && 
@@ -502,7 +489,6 @@ export async function calculateSunriseSunset(
 	    sunsetDate.getHours() >= 18) {
 		// Sunset is late evening previous day - adjust to target day
 		sunsetDate = new Date(targetYear, targetMonth, targetDay, sunsetDate.getHours(), sunsetDate.getMinutes(), sunsetDate.getSeconds());
-		console.log(`[calculateSunriseSunset] Adjusted sunset to target day: ${sunsetDate.toISOString()}`);
 	}
 	
 	// Final validation: ensure dates are reasonable (within 24 hours of target)
@@ -510,19 +496,14 @@ export async function calculateSunriseSunset(
 	const targetDateEnd = new Date(targetYear, targetMonth, targetDay, 23, 59, 59);
 	
 	if (sunriseDate < targetDateStart || sunriseDate > new Date(targetDateEnd.getTime() + 6 * 60 * 60 * 1000)) {
-		console.warn(`[calculateSunriseSunset] Sunrise seems wrong, adjusting to target day`);
 		// Keep the time but use target day
 		sunriseDate = new Date(targetYear, targetMonth, targetDay, sunriseDate.getHours(), sunriseDate.getMinutes(), sunriseDate.getSeconds());
 	}
 	
 	if (sunsetDate < new Date(targetDateStart.getTime() - 6 * 60 * 60 * 1000) || sunsetDate > targetDateEnd) {
-		console.warn(`[calculateSunriseSunset] Sunset seems wrong, adjusting to target day`);
 		// Keep the time but use target day
 		sunsetDate = new Date(targetYear, targetMonth, targetDay, sunsetDate.getHours(), sunsetDate.getMinutes(), sunsetDate.getSeconds());
 	}
-	
-	console.log(`[calculateSunriseSunset] Final sunrise: ${sunriseDate.toISOString()} (${sunriseDate.toString()})`);
-	console.log(`[calculateSunriseSunset] Final sunset: ${sunsetDate.toISOString()} (${sunsetDate.toString()})`);
 	
 	return { sunrise: sunriseDate, sunset: sunsetDate };
 }
@@ -535,8 +516,6 @@ async function julianDayToDate(jd: number): Promise<Date> {
 	if (!jd || !isFinite(jd) || jd <= 0) {
 		throw new Error(`Invalid Julian Day: ${jd}`);
 	}
-	
-	console.log(`[julianDayToDate] Input JD: ${jd}`);
 	
 	// Use manual conversion - more reliable than swe_revjul
 	// JD to Gregorian date conversion (standard algorithm)
@@ -567,8 +546,6 @@ async function julianDayToDate(jd: number): Promise<Date> {
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
 	
-	console.log(`[julianDayToDate] UT components: year=${year}, month=${month}, day=${day}, hour=${hourInt}, minute=${minute}, second=${second}`);
-	
 	// Validate the result
 	if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
 		throw new Error(`Invalid date from JD conversion: ${year}-${month}-${day}`);
@@ -585,12 +562,17 @@ async function julianDayToDate(jd: number): Promise<Date> {
 		throw new Error(`Invalid date created: ${year}-${month}-${day} ${hourInt}:${minute}:${second}`);
 	}
 	
-	console.log(`[julianDayToDate] Created Date (local timezone): ${date.toISOString()} (${date.toString()})`);
-	
 	return date;
 }
 
 // Get Planetary Hour based on sunrise/sunset
+// IMPORTANT: Planetary hours are location-specific, NOT timezone-based!
+// They depend on local sunrise/sunset times, which vary by latitude/longitude.
+// Even within the same timezone, different locations will have different:
+// - Sunrise/sunset times
+// - Day/night lengths  
+// - Planetary hour boundaries
+// This is CORRECT behavior according to traditional astrology.
 // For night hours before sunrise, sunset should be yesterday's sunset
 export function getPlanetaryHour(
 	currentTime: Date,
@@ -598,12 +580,6 @@ export function getPlanetaryHour(
 	sunset: Date,
 	prevSunset?: Date
 ): { hour: number; ruler: Planet; isDay: boolean } {
-	console.log(`[getPlanetaryHour] START`);
-	console.log(`  currentTime: ${currentTime.toISOString()} (${currentTime.toString()})`);
-	console.log(`  sunrise: ${sunrise.toISOString()} (${sunrise.toString()})`);
-	console.log(`  sunset: ${sunset.toISOString()} (${sunset.toString()})`);
-	console.log(`  prevSunset: ${prevSunset ? prevSunset.toISOString() : 'undefined'}`);
-	
 	// Chaldean order: Saturn -> Jupiter -> Mars -> Sun -> Venus -> Mercury -> Moon
 	const chaldeanOrder: Planet[] = ["Saturn", "Jupiter", "Mars", "Sun", "Venus", "Mercury", "Moon"];
 	
@@ -613,11 +589,9 @@ export function getPlanetaryHour(
 	const dayRulers: Planet[] = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn"];
 	const dayRuler = dayRulers[actualDayOfWeek];
 	const dayRulerIndex = chaldeanOrder.indexOf(dayRuler);
-	console.log(`  Actual date day of week: ${actualDayOfWeek} (${dayRuler})`);
 	
 	// Determine if we're in day or night period
 	const isDay = currentTime >= sunrise && currentTime < sunset;
-	console.log(`  isDay: ${isDay} (currentTime >= sunrise: ${currentTime >= sunrise}, currentTime < sunset: ${currentTime < sunset})`);
 	
 	let hourLength: number;
 	let timeSinceStart: number;
@@ -626,11 +600,9 @@ export function getPlanetaryHour(
 	if (isDay) {
 		// Day hours: from sunrise to sunset, divided into 12
 		const dayLength = sunset.getTime() - sunrise.getTime();
-		console.log(`  Day length: ${dayLength}ms (${dayLength / (1000 * 60 * 60)} hours)`);
 		
 		if (dayLength <= 0) {
 			// Edge case: no daylight (polar regions during winter)
-			console.warn(`  WARNING: No daylight detected, falling back to night calculation`);
 			const nightStart = prevSunset || (() => {
 				const ps = new Date(sunset);
 				ps.setDate(ps.getDate() - 1);
@@ -655,7 +627,6 @@ export function getPlanetaryHour(
 		
 		if (currentTime < sunrise) {
 			// Before sunrise today - use previous night (yesterday's sunset to today's sunrise)
-			console.log(`  Before sunrise - using previous night`);
 			nightStart = prevSunset || (() => {
 				const ps = new Date(sunset);
 				ps.setDate(ps.getDate() - 1);
@@ -664,18 +635,15 @@ export function getPlanetaryHour(
 			nightEnd = sunrise;
 		} else {
 			// After sunset today - use current night (today's sunset to tomorrow's sunrise)
-			console.log(`  After sunset - using current night`);
 			nightStart = sunset;
 			nightEnd = new Date(sunrise);
 			nightEnd.setDate(nightEnd.getDate() + 1);
 		}
 		
 		const nightLength = nightEnd.getTime() - nightStart.getTime();
-		console.log(`  Night length: ${nightLength}ms (${nightLength / (1000 * 60 * 60)} hours)`);
 		
 		if (nightLength <= 0) {
 			// Edge case: no night (polar regions during summer)
-			console.warn(`  WARNING: No night detected, falling back to day calculation`);
 			const dayLength = sunset.getTime() - sunrise.getTime();
 			hourLength = dayLength > 0 ? dayLength / 12 : 3600000; // Default to 1 hour if still invalid
 			timeSinceStart = currentTime.getTime() - sunrise.getTime();
@@ -687,37 +655,26 @@ export function getPlanetaryHour(
 		}
 	}
 	
-	console.log(`  periodStart: ${periodStart.toISOString()}`);
-	console.log(`  hourLength: ${hourLength}ms (${hourLength / (1000 * 60)} minutes)`);
-	console.log(`  timeSinceStart: ${timeSinceStart}ms (${timeSinceStart / (1000 * 60)} minutes)`);
-	
 	// Calculate which hour we're in (0-11)
 	// Handle edge case where timeSinceStart might be negative due to timezone issues
 	if (timeSinceStart < 0) {
-		console.warn(`  WARNING: timeSinceStart is negative (${timeSinceStart}), setting to 0`);
 		timeSinceStart = 0;
 	}
 	
 	// Ensure hourLength is valid (greater than 0)
 	if (hourLength <= 0 || !isFinite(hourLength)) {
-		console.warn(`  WARNING: Invalid hourLength (${hourLength}), using 1 hour fallback`);
 		hourLength = 3600000; // 1 hour in milliseconds
 	}
 	
 	const hourNumber = Math.floor(timeSinceStart / hourLength);
-	console.log(`  hourNumber (before clamp): ${hourNumber}`);
 	
 	// Clamp to valid range (0-11)
 	const clampedHourNumber = Math.max(0, Math.min(11, hourNumber));
-	console.log(`  clampedHourNumber: ${clampedHourNumber}`);
 	
 	// Calculate which planet rules this hour
 	// The first hour (0) is the day ruler, then we cycle through Chaldean order
 	const hourIndex = (dayRulerIndex + clampedHourNumber) % 7;
 	const ruler = chaldeanOrder[hourIndex];
-	
-	console.log(`  dayRulerIndex: ${dayRulerIndex}, hourIndex: ${hourIndex}, ruler: ${ruler}`);
-	console.log(`[getPlanetaryHour] END - Hour: ${clampedHourNumber + 1}, Ruler: ${ruler}, isDay: ${isDay}`);
 	
 	return { hour: clampedHourNumber + 1, ruler, isDay };
 }
@@ -779,35 +736,19 @@ export async function calculateElementalProfile(
 	location: Location,
 	weather: string | null = null
 ): Promise<ElementalProfile> {
-	console.log(`[calculateElementalProfile] START`);
-	console.log(`  date: ${date.toISOString()} (${date.toString()})`);
-	console.log(`  location: Lat ${location.latitude}, Long ${location.longitude}`);
-	
 	// Get sunrise and sunset for today
 	const { sunrise, sunset } = await calculateSunriseSunset(date, location.latitude, location.longitude);
-	console.log(`  Calculated sunrise: ${sunrise.toISOString()} (${sunrise.toString()})`);
-	console.log(`  Calculated sunset: ${sunset.toISOString()} (${sunset.toString()})`);
 	
 	// If the time is before sunrise, we also need yesterday's sunset for night hours
 	let prevSunset = sunset;
 	if (date < sunrise) {
-		console.log(`  Date is before sunrise, calculating previous day's sunset`);
 		const prevDate = new Date(date);
 		prevDate.setDate(prevDate.getDate() - 1);
 		const prevDayTimes = await calculateSunriseSunset(prevDate, location.latitude, location.longitude);
 		prevSunset = prevDayTimes.sunset;
-		console.log(`  Previous sunset: ${prevSunset.toISOString()} (${prevSunset.toString()})`);
 	}
 	
-	console.log(`[calculateElementalProfile] Calling getPlanetaryHour with:`);
-	console.log(`  currentTime: ${date.toISOString()}`);
-	console.log(`  sunrise: ${sunrise.toISOString()}`);
-	console.log(`  sunset: ${sunset.toISOString()}`);
-	console.log(`  prevSunset: ${prevSunset ? prevSunset.toISOString() : 'undefined'}`);
-	
 	const planetaryHour = getPlanetaryHour(date, sunrise, sunset, prevSunset);
-	
-	console.log(`[calculateElementalProfile] Planetary hour result:`, planetaryHour);
 	const tattva = getTattva(date, sunrise);
 	
 	const tattvaElement = tattvaToElement(tattva);
@@ -1439,4 +1380,74 @@ export async function getUpcomingEvents(startDate: Date, daysAhead: number = 365
 	events.sort((a, b) => a.date.getTime() - b.date.getTime());
 	
 	return events.slice(0, 10); // Return next 10 events
+}
+
+// Calculate house cusps using Swiss Ephemeris (Placidus system)
+export async function calculateHouseCusps(
+	date: Date,
+	latitude: number,
+	longitude: number
+): Promise<HouseCusps> {
+	const swe = await initSwissEphemeris();
+	
+	// Convert date to Julian Day (UT)
+	const year = date.getUTCFullYear();
+	const month = date.getUTCMonth() + 1;
+	const day = date.getUTCDate();
+	const hour = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+	const julianDay = swe.swe_julday(year, month, day, hour, 1);
+	
+	// Calculate houses using Placidus system (housename = 'P')
+	// swe_houses returns an object with cusps and ascmc arrays
+	// cusps[0] is not used, cusps[1-12] are house cusps (1st house to 12th house)
+	// ascmc[0] = Ascendant, ascmc[1] = MC (Midheaven)
+	const houseResult = swe.swe_houses(julianDay, latitude, longitude, 'P');
+	
+	// Handle different return formats
+	let cusps: number[] = [];
+	let ascmc: number[] = [];
+	
+	if (Array.isArray(houseResult)) {
+		// Array format: [cusps, ascmc] or just cusps
+		if (Array.isArray(houseResult[0])) {
+			cusps = houseResult[0];
+			ascmc = houseResult[1] || [];
+		} else {
+			cusps = houseResult;
+		}
+	} else if (houseResult && typeof houseResult === 'object') {
+		// Object format
+		if ('cusps' in houseResult) {
+			cusps = Array.isArray(houseResult.cusps) ? houseResult.cusps : [];
+			ascmc = Array.isArray(houseResult.ascmc) ? houseResult.ascmc : [];
+		} else {
+			// Try accessing as array-like object
+			const values = Object.values(houseResult);
+			if (values.length >= 2 && Array.isArray(values[0])) {
+				cusps = values[0] as number[];
+				ascmc = values[1] as number[];
+			}
+		}
+	}
+	
+	// Extract house cusps (indices 1-12, index 0 is not used)
+	const houses: number[] = [];
+	for (let i = 1; i <= 12; i++) {
+		if (cusps[i] !== undefined && cusps[i] !== null) {
+			houses.push(cusps[i]);
+		} else {
+			// Fallback: calculate approximate houses if Swiss Ephemeris fails
+			houses.push((i - 1) * 30);
+		}
+	}
+	
+	// Extract Ascendant (index 0) and MC (index 1)
+	const ascendant = (ascmc && ascmc[0] !== undefined) ? ascmc[0] : houses[0] || 0;
+	const mc = (ascmc && ascmc[1] !== undefined) ? ascmc[1] : houses[9] || 0;
+	
+	return {
+		houses,
+		ascendant,
+		mc,
+	};
 }
