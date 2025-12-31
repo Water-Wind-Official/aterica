@@ -434,7 +434,7 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 						{/* Planets */}
 						{planets}
 
-						{/* Ascendant and MC indicators */}
+						{/* Angular points: ASC, MC, IC, DC */}
 						{houseCusps && (
 							<>
 								{/* Ascendant line (1st house cusp) */}
@@ -454,6 +454,26 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 									x2={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius)[0]}
 									y2={angleToCoords(longitudeToAngle(houseCusps.mc), outerRadius)[1]}
 									stroke="#ef4444"
+									strokeWidth="2"
+									opacity="0.8"
+								/>
+								{/* IC line (4th house cusp) */}
+								<line
+									x1={angleToCoords(longitudeToAngle(houseCusps.ic), innerRadius)[0]}
+									y1={angleToCoords(longitudeToAngle(houseCusps.ic), innerRadius)[1]}
+									x2={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius)[0]}
+									y2={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius)[1]}
+									stroke="#84cc16"
+									strokeWidth="2"
+									opacity="0.8"
+								/>
+								{/* Descendant line (7th house cusp) */}
+								<line
+									x1={angleToCoords(longitudeToAngle(houseCusps.descendant), innerRadius)[0]}
+									y1={angleToCoords(longitudeToAngle(houseCusps.descendant), innerRadius)[1]}
+									x2={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius)[0]}
+									y2={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius)[1]}
+									stroke="#a855f7"
 									strokeWidth="2"
 									opacity="0.8"
 								/>
@@ -480,6 +500,30 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 									fontWeight="bold"
 								>
 									MC
+								</text>
+								{/* IC label */}
+								<text
+									x={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[0]}
+									y={angleToCoords(longitudeToAngle(houseCusps.ic), outerRadius + 10)[1]}
+									textAnchor="middle"
+									dominantBaseline="middle"
+									fill="#84cc16"
+									fontSize="10"
+									fontWeight="bold"
+								>
+									IC
+								</text>
+								{/* Descendant label */}
+								<text
+									x={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[0]}
+									y={angleToCoords(longitudeToAngle(houseCusps.descendant), outerRadius + 10)[1]}
+									textAnchor="middle"
+									dominantBaseline="middle"
+									fill="#a855f7"
+									fontSize="10"
+									fontWeight="bold"
+								>
+									DC
 								</text>
 							</>
 						)}

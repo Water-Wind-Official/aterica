@@ -139,8 +139,10 @@ export interface Location {
 
 export interface HouseCusps {
 	houses: number[]; // 12 house cusps in degrees (0-360)
-	ascendant: number; // Ascendant longitude
-	mc: number; // Midheaven (MC) longitude
+	ascendant: number; // Ascendant (ASC) longitude - 1st house cusp
+	mc: number; // Midheaven (MC) longitude - 10th house cusp
+	ic: number; // Imum Coeli (IC) longitude - 4th house cusp (opposite of MC)
+	descendant: number; // Descendant (DC) longitude - 7th house cusp (opposite of ASC)
 }
 
 export const SIGN_ELEMENTS: Record<ZodiacSign, Element> = {
@@ -1580,9 +1582,15 @@ export async function calculateHouseCusps(
 		mc = houses[9]; // Use 10th house cusp as fallback
 	}
 	
+	// Calculate IC (opposite of MC) and Descendant (opposite of ASC)
+	const ic = (mc + 180) % 360;
+	const descendant = (ascendant + 180) % 360;
+	
 	return {
 		houses,
 		ascendant,
 		mc,
+		ic,
+		descendant,
 	};
 }
