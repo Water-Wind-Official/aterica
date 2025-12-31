@@ -371,12 +371,20 @@ export async function calculateSunriseSunset(
 	const swe = await initSwissEphemeris();
 	
 	// Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
-	// We need to use the date at noon UT for the day we're interested in
-	// The function will calculate the local sunrise/sunset times based on the longitude
-	const year = date.getUTCFullYear();
-	const month = date.getUTCMonth() + 1;
-	const day = date.getUTCDate();
-	const julianDay = swe.swe_julday(year, month, day, 12.0, 1);
+	// The date parameter represents the user's selected date/time (in browser's local timezone)
+	// We need to determine which calendar day we want sunrise/sunset for
+	// Use local date components to get the correct day, then convert to UT for Julian Day
+	const localYear = date.getFullYear();
+	const localMonth = date.getMonth() + 1;
+	const localDay = date.getDate();
+	// Create a date at noon local time for that calendar day
+	const localNoon = new Date(localYear, localMonth - 1, localDay, 12, 0, 0);
+	// Convert to UT components for Swiss Ephemeris (which expects UT)
+	const year = localNoon.getUTCFullYear();
+	const month = localNoon.getUTCMonth() + 1;
+	const day = localNoon.getUTCDate();
+	const hour = localNoon.getUTCHours() + localNoon.getUTCMinutes() / 60;
+	const julianDay = swe.swe_julday(year, month, day, hour, 1);
 	
 	// Calculate sunrise (SE_CALC_RISE = 1)
 	// swe_rise_trans returns { flag, error, data } where data is the Julian Day
@@ -463,8 +471,12 @@ export function getPlanetaryHour(
 		
 		if (currentTime < sunrise) {
 			// Before sunrise today - use previous night (yesterday's sunset to today's sunrise)
-			nightStart = new Date(sunset);
-			nightStart.setDate(nightStart.getDate() - 1);
+			// Use prevSunset if provided (actual calculated sunset from yesterday), otherwise fall back
+			nightStart = prevSunset || (() => {
+				const ps = new Date(sunset);
+				ps.setDate(ps.getDate() - 1);
+				return ps;
+			})();
 			nightEnd = sunrise;
 		} else {
 			// After sunset today - use current night (today's sunset to tomorrow's sunrise)
