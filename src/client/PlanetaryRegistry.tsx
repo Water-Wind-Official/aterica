@@ -142,18 +142,18 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			});
 	}, [selectedDate, selectedTime, location, selectedWeather]);
 
-	const showTooltip = (content: string, event: React.MouseEvent) => {
+	const showTooltip = useCallback((content: string, event: React.MouseEvent) => {
 		setTooltip({
 			show: true,
 			content,
 			x: event.clientX,
 			y: event.clientY,
 		});
-	};
+	}, []);
 
-	const hideTooltip = () => {
+	const hideTooltip = useCallback(() => {
 		setTooltip({ show: false, content: "", x: 0, y: 0 });
-	};
+	}, []);
 
 	// Memoize planet hover handler to prevent re-renders
 	const handlePlanetHover = useCallback((planet: PlanetaryDignity | null, event: React.MouseEvent) => {
@@ -163,7 +163,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		} else {
 			hideTooltip();
 		}
-	}, []);
+	}, [showTooltip, hideTooltip]);
 
 	const getScoreColor = (score: number): string => {
 		if (score >= 4) return "#4ade80";

@@ -212,13 +212,15 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 					key={dignity.planet}
 					onMouseEnter={(e) => {
 						e.stopPropagation();
+						e.preventDefault();
 						onPlanetHover?.(dignity, e);
 					}}
 					onMouseLeave={(e) => {
 						e.stopPropagation();
+						e.preventDefault();
 						onPlanetHover?.(null, e);
 					}}
-					style={{ cursor: 'pointer' }}
+					style={{ cursor: 'pointer', pointerEvents: 'all' }}
 				>
 					<circle
 						cx={x}
@@ -254,7 +256,7 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 				</g>
 			);
 		});
-	}, [dignities]);
+	}, [dignities, longitudeToAngle, angleToCoords, planetRadius, onPlanetHover]);
 
 	// Render house numbers
 	const houseNumbers = useMemo(() => {
@@ -263,9 +265,24 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 		return houseCusps.houses.map((cusp, index) => {
 			// Calculate midpoint of house (average of this cusp and next)
 			const nextCusp = houseCusps.houses[(index + 1) % 12];
-			const houseMidAngle = longitudeToAngle((cusp + nextCusp) / 2);
-			const [x, y] = angleToCoords(houseMidAngle, houseRadius);
+			// Handle wrap-around for the last house
+			let houseMidLongitude;
+			if (index === 11) {
+				// Last house: midpoint between 12th cusp and 1st cusp
+				// If nextCusp < cusp, we've wrapped around
+				if (nextCusp < cusp) {
+					houseMidLongitude = (cusp + nextCusp + 360) / 2;
+					if (houseMidLongitude >= 360) houseMidLongitude -= 360;
+				} else {
+					houseMidLongitude = (cusp + nextCusp) / 2;
+				}
+			} else {
+				houseMidLongitude = (cusp + nextCusp) / 2;
+			}
+			const houseMidAngle = longitudeToAngle(houseMidLongitude);
+			const [x, y] = angleToCoords(houseMidAngle, 170);
 
+			const houseNumber = index + 1;
 			return (
 				<text
 					key={`house-num-${index}`}
@@ -273,15 +290,16 @@ export function NatalChartWheel({ dignities, date, location, onPlanetHover }: Na
 					y={y}
 					textAnchor="middle"
 					dominantBaseline="middle"
-					fontSize="11"
-					fill="#888"
+					fontSize="13"
+					fill="#aaa"
 					fontWeight="bold"
+					style={{ pointerEvents: 'none', userSelect: 'none' }}
 				>
-					{index + 1}
+					{houseNumber}
 				</text>
 			);
 		});
-	}, [houseCusps]);
+	}, [houseCusps, longitudeToAngle, angleToCoords, houseRadius]);
 
 	return (
 		<div className="natal-chart-section">
