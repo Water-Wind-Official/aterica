@@ -89,16 +89,15 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 	};
 
 	// Render zodiac signs around the outer ring
-	// Signs are positioned at their natural zodiac positions (0° Aries, 30° Taurus, etc.)
-	// The chart is rotated so the Ascendant is at the left, so signs are positioned relative to that
+	// Signs are positioned at their natural zodiac boundaries (0° Aries, 30° Taurus, etc.)
+	// Each sign occupies 30 degrees of the zodiac wheel
 	const zodiacSigns = useMemo(() => {
 		return ZODIAC_SIGNS.map((sign, index) => {
 			// Each sign starts at index * 30 degrees (0° Aries, 30° Taurus, etc.)
-			// Position the sign label at the middle of each sign (15° into each sign)
+			// Position the sign label at the start of each sign (0° into each sign)
 			const signStartLongitude = index * 30;
-			const signMidLongitude = signStartLongitude + 15; // Middle of the sign
-			const angle = longitudeToAngle(signMidLongitude);
-			const [x, y] = angleToCoords(angle, outerRadius - 15);
+			const angle = longitudeToAngle(signStartLongitude);
+			const [x, y] = angleToCoords(angle, outerRadius - 10);
 			const element = SIGN_ELEMENTS[sign];
 			const color = getElementColor(element);
 
