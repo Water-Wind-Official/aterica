@@ -551,36 +551,36 @@ export async function calculateElementalProfile(
 		spirit: 0,
 	};
 	
-	// 1. Planetary Position Buffs
+	// 1. Planetary Position Buffs (halved)
 	dignities.forEach(dignity => {
 		const element = SIGN_ELEMENTS[dignity.sign];
 		
 		switch (dignity.planet) {
 			case "Sun":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 18;
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 9; // 18 / 2
 				break;
 			case "Moon":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 12;
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 6; // 12 / 2
 				break;
 			case "Mercury":
 			case "Venus":
 			case "Mars":
 			case "Jupiter":
 			case "Saturn":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 8;
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 4; // 8 / 2
 				break;
 		}
 	});
 	
-	// 2. Tattva Hour Buff (+15)
+	// 2. Tattva Hour Buff (+10)
 	if (tattvaElement !== "Spirit") {
-		buffs[tattvaElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 15;
+		buffs[tattvaElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 10;
 	}
 	
-	// 3. Planetary Hour Buff (+15) - based on specific mapping
+	// 3. Planetary Hour Buff (+10) - based on specific mapping
 	const planetaryHourElement = getPlanetaryHourElement(planetaryHour.ruler);
 	if (planetaryHourElement !== "Spirit") {
-		buffs[planetaryHourElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 15;
+		buffs[planetaryHourElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 10;
 	}
 	
 	// 4. Constant Buffs
@@ -613,13 +613,13 @@ export async function calculateElementalProfile(
 	
 	// 6. Time-based Buffs
 	const hour = date.getHours();
-	// Fire: +20 between 9 AM (9) and 4 PM (16)
+	// Fire: +14 between 9 AM (9) and 4 PM (16)
 	if (hour >= 9 && hour < 16) {
-		buffs.fire += 20;
+		buffs.fire += 14;
 	}
-	// Water: +20 between 8 PM (20) and 3 AM (3)
+	// Water: +14 between 8 PM (20) and 3 AM (3)
 	if (hour >= 20 || hour < 3) {
-		buffs.water += 20;
+		buffs.water += 14;
 	}
 	
 	// 7. Season-based Buffs (+16 for current season)
@@ -662,9 +662,9 @@ export async function calculateElementalProfile(
 	dignities.forEach(dignity => {
 		const element = SIGN_ELEMENTS[dignity.sign];
 		let buff = 0;
-		if (dignity.planet === "Sun") buff = 18;
-		else if (dignity.planet === "Moon") buff = 12;
-		else buff = 8;
+		if (dignity.planet === "Sun") buff = 9; // 18 / 2
+		else if (dignity.planet === "Moon") buff = 6; // 12 / 2
+		else buff = 4; // 8 / 2
 		positionBuffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += buff;
 	});
 	
@@ -683,10 +683,10 @@ export async function calculateElementalProfile(
 	breakdown.push({
 		source: "Tattva",
 		weight: 0,
-		fire: tattvaElement === "Fire" ? 15 : 0,
-		earth: tattvaElement === "Earth" ? 15 : 0,
-		air: tattvaElement === "Air" ? 15 : 0,
-		water: tattvaElement === "Water" ? 15 : 0,
+		fire: tattvaElement === "Fire" ? 10 : 0,
+		earth: tattvaElement === "Earth" ? 10 : 0,
+		air: tattvaElement === "Air" ? 10 : 0,
+		water: tattvaElement === "Water" ? 10 : 0,
 		spirit: 0,
 		details: `Current Tattva: ${tattva} (${tattvaElement} element)`,
 	});
@@ -695,10 +695,10 @@ export async function calculateElementalProfile(
 	breakdown.push({
 		source: "Planetary Hour",
 		weight: 0,
-		fire: planetaryHourElement === "Fire" ? 15 : 0,
-		earth: planetaryHourElement === "Earth" ? 15 : 0,
-		air: planetaryHourElement === "Air" ? 15 : 0,
-		water: planetaryHourElement === "Water" ? 15 : 0,
+		fire: planetaryHourElement === "Fire" ? 10 : 0,
+		earth: planetaryHourElement === "Earth" ? 10 : 0,
+		air: planetaryHourElement === "Air" ? 10 : 0,
+		water: planetaryHourElement === "Water" ? 10 : 0,
 		spirit: 0,
 		details: `${planetaryHour.ruler} Hour (${planetaryHourElement} element)`,
 	});
@@ -728,8 +728,8 @@ export async function calculateElementalProfile(
 	});
 	
 	// Time breakdown
-	const timeFireBuff = (hour >= 9 && hour < 16) ? 20 : 0;
-	const timeWaterBuff = (hour >= 20 || hour < 3) ? 20 : 0;
+	const timeFireBuff = (hour >= 9 && hour < 16) ? 14 : 0;
+	const timeWaterBuff = (hour >= 20 || hour < 3) ? 14 : 0;
 	breakdown.push({
 		source: "Time of Day",
 		weight: 0,
