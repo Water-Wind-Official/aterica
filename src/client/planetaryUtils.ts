@@ -1,5 +1,7 @@
-// Planetary Essential Dignity calculations
-// Based on traditional astrology
+// Planetary Essential Dignity calculations using Swiss Ephemeris
+// Based on traditional astrology with high-precision calculations
+
+import SwissEPH from "sweph-wasm";
 
 export type Planet = 
 	| "Sun" 
@@ -31,6 +33,17 @@ export interface PlanetaryDignity {
 	score: number; // -10 to +10
 	isRetrograde: boolean;
 }
+
+// Swiss Ephemeris planet numbers
+const PLANET_NUMBERS: Record<Planet, number> = {
+	Sun: 0,
+	Moon: 1,
+	Mercury: 2,
+	Venus: 3,
+	Mars: 4,
+	Jupiter: 5,
+	Saturn: 6,
+};
 
 // Essential Dignity tables
 const PLANETARY_DIGNITIES: Record<Planet, {
@@ -83,40 +96,116 @@ const PLANETARY_DIGNITIES: Record<Planet, {
 	},
 };
 
-// Simplified calculation: Get sign from date (this is a placeholder - 
-// in production you'd use a proper ephemeris library like swisseph or an API)
-// This uses approximate orbital periods to simulate planetary positions
-function getPlanetSign(planet: Planet, date: Date): ZodiacSign {
-	const signs: ZodiacSign[] = [
-		"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-		"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-	];
+// Zodiac signs in order (0° = Aries, 30° = Taurus, etc.)
+const ZODIAC_SIGNS: ZodiacSign[] = [
+	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+];
+
+// Initialize Swiss Ephemeris (call this once, cache the result)
+let sweInstance: any = null;
+let initPromise: Promise<any> | null = null;
+
+export async function initSwissEphemeris(): Promise<any> {
+	if (sweInstance) {
+		return sweInstance;
+	}
 	
-	// Approximate orbital periods in days (for sign calculation)
-	const orbitalPeriods: Record<Planet, number> = {
-		Sun: 365.25,        // ~1 year (tropical year)
-		Moon: 27.32,        // ~27.3 days (sidereal month)
-		Mercury: 88,        // ~88 days
-		Venus: 225,         // ~225 days
-		Mars: 687,          // ~687 days
-		Jupiter: 4333,      // ~12 years
-		Saturn: 10759,      // ~29.5 years
-	};
+	if (initPromise) {
+		return initPromise;
+	}
 	
-	// Use a reference date (Jan 1, 2000) and calculate days since
-	const referenceDate = new Date(2000, 0, 1);
-	const daysSince = (date.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24);
+	initPromise = (async () => {
+		const swe = await SwissEPH.init();
+		await swe.swe_set_ephe_path(); // Use default ephemeris files from CDN
+		sweInstance = swe;
+		return swe;
+	})();
 	
-	// Calculate which sign the planet is in based on its orbital period
-	const period = orbitalPeriods[planet];
-	const cycles = daysSince / period;
-	const signIndex = Math.floor((cycles % 1) * 12);
+	return initPromise;
+}
+
+// Convert longitude (0-360°) to zodiac sign
+function longitudeToSign(longitude: number): ZodiacSign {
+	// Normalize to 0-360
+	longitude = longitude % 360;
+	if (longitude < 0) longitude += 360;
 	
-	return signs[Math.abs(signIndex) % 12];
+	// Each sign is 30 degrees
+	const signIndex = Math.floor(longitude / 30);
+	return ZODIAC_SIGNS[signIndex];
+}
+
+// Get planet position from Swiss Ephemeris
+async function getPlanetPosition(
+	swe: any,
+	planet: Planet,
+	date: Date
+): Promise<{ longitude: number; isRetrograde: boolean }> {
+	const planetNumber = PLANET_NUMBERS[planet];
+	
+	// Convert date to Julian Day
+	const year = date.getUTCFullYear();
+	const month = date.getUTCMonth() + 1; // Swiss Ephemeris uses 1-12
+	const day = date.getUTCDate();
+	const hour = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+	
+	const julianDay = swe.swe_julday(year, month, day, hour, 1); // 1 = Gregorian calendar
+	
+	// Calculate planet position
+	// Try with speed flag first (0x0002 = SEFLG_SPEED)
+	let flag = 0x0002;
+	let result = swe.swe_calc_ut(julianDay, planetNumber, flag);
+	
+	// Check for errors
+	if (result && typeof result === 'object' && 'error' in result && result.error) {
+		// Try without speed flag as fallback
+		flag = 0;
+		result = swe.swe_calc_ut(julianDay, planetNumber, flag);
+		if (result && typeof result === 'object' && 'error' in result && result.error) {
+			throw new Error(`Swiss Ephemeris error: ${result.error}`);
+		}
+	}
+	
+	// Handle array result: [longitude, latitude, distance, speedInLongitude, speedInLatitude, speedInDistance]
+	const positions = Array.isArray(result) ? result : (result && typeof result === 'object' ? Object.values(result) : [result]);
+	const longitude = positions[0] || 0;
+	
+	// Determine retrograde motion
+	let isRetrograde = false;
+	if (flag === 0x0002 && positions[3] !== undefined) {
+		// Speed in longitude is at index 3 when speed flag is used
+		// Negative speed = retrograde motion
+		isRetrograde = positions[3] < 0;
+	} else {
+		// Fallback: calculate speed by comparing positions at two nearby times
+		// Use 1 hour difference to calculate speed
+		const julianDay1 = julianDay;
+		const julianDay2 = julianDay + (1 / 24.0); // 1 hour later
+		
+		const result1 = swe.swe_calc_ut(julianDay1, planetNumber, 0);
+		const result2 = swe.swe_calc_ut(julianDay2, planetNumber, 0);
+		
+		const pos1 = Array.isArray(result1) ? result1 : (result1 && typeof result1 === 'object' ? Object.values(result1) : [result1]);
+		const pos2 = Array.isArray(result2) ? result2 : (result2 && typeof result2 === 'object' ? Object.values(result2) : [result2]);
+		
+		const long1 = pos1[0] || 0;
+		const long2 = pos2[0] || 0;
+		
+		// Normalize longitude difference (handle 360° wrap)
+		let diff = long2 - long1;
+		if (diff > 180) diff -= 360;
+		if (diff < -180) diff += 360;
+		
+		// Negative change = retrograde
+		isRetrograde = diff < 0;
+	}
+	
+	return { longitude, isRetrograde };
 }
 
 // Calculate Essential Dignity score for a planet
-export function calculateDignityScore(
+function calculateDignityScore(
 	planet: Planet,
 	sign: ZodiacSign,
 	isRetrograde: boolean = false
@@ -163,19 +252,23 @@ export function calculateDignityScore(
 	};
 }
 
-// Get all planets with their current dignity
-export function getAllPlanetaryDignities(date: Date): PlanetaryDignity[] {
+// Get all planets with their current dignity using Swiss Ephemeris
+export async function getAllPlanetaryDignities(date: Date): Promise<PlanetaryDignity[]> {
+	const swe = await initSwissEphemeris();
 	const planets: Planet[] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
 	
-	return planets.map(planet => {
-		const sign = getPlanetSign(planet, date);
-		// Simplified: assume not retrograde (in production, calculate from ephemeris)
-		const isRetrograde = false;
-		return calculateDignityScore(planet, sign, isRetrograde);
-	});
+	const results = await Promise.all(
+		planets.map(async (planet) => {
+			const { longitude, isRetrograde } = await getPlanetPosition(swe, planet, date);
+			const sign = longitudeToSign(longitude);
+			return calculateDignityScore(planet, sign, isRetrograde);
+		})
+	);
+	
+	return results;
 }
 
-// Get day ruler (simplified)
+// Get day ruler
 export function getDayRuler(date: Date): Planet {
 	const dayOfWeek = date.getDay();
 	const dayRulers: Planet[] = [
@@ -198,4 +291,3 @@ export function getHourRuler(date: Date): Planet {
 	const hourIndex = hoursSinceMidnight % 7;
 	return chaldeanOrder[hourIndex];
 }
-
