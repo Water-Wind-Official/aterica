@@ -281,6 +281,183 @@ a {
 	color: #f87171;
 }
 
+/* Tooltip */
+.tooltip {
+	position: fixed;
+	background-color: rgba(0, 0, 0, 0.95);
+	color: white;
+	padding: 12px 16px;
+	border-radius: 8px;
+	font-size: 0.9rem;
+	max-width: 300px;
+	z-index: 10000;
+	pointer-events: none;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+	line-height: 1.5;
+}
+
+.info-icon {
+	cursor: help;
+	font-size: 0.9rem;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.info-icon:hover {
+	opacity: 1;
+}
+
+.ruler-label {
+	cursor: help;
+	text-decoration: underline;
+	text-decoration-style: dotted;
+	text-underline-offset: 3px;
+}
+
+/* Element Display */
+.planet-element {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 8px;
+	font-size: 0.9rem;
+	font-weight: 500;
+	cursor: help;
+}
+
+.element-emoji {
+	font-size: 1.1rem;
+}
+
+.element-name {
+	font-weight: 600;
+}
+
+/* Alignments Section */
+.alignments-section {
+	margin: 40px 0;
+	padding: 20px;
+	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+	border-radius: 12px;
+	border: 1px solid #333;
+}
+
+.alignments-section h3 {
+	color: white;
+	font-size: 1.5rem;
+	margin-bottom: 20px;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.alignments-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+	gap: 15px;
+}
+
+.alignment-card {
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	padding: 15px;
+}
+
+.alignment-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+.alignment-type {
+	color: #86efac;
+	font-weight: 600;
+	font-size: 0.9rem;
+}
+
+.alignment-strength {
+	color: #fbbf24;
+	font-weight: 600;
+	font-size: 0.85rem;
+}
+
+.alignment-planets {
+	color: white;
+	font-size: 1rem;
+	margin: 8px 0;
+	font-weight: 500;
+}
+
+.alignment-description {
+	color: #ccc;
+	font-size: 0.85rem;
+	margin: 0;
+	line-height: 1.4;
+}
+
+/* Events Section */
+.events-section {
+	margin: 40px 0;
+	padding: 20px;
+	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+	border-radius: 12px;
+	border: 1px solid #333;
+}
+
+.events-section h3 {
+	color: white;
+	font-size: 1.5rem;
+	margin-bottom: 20px;
+}
+
+.events-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 15px;
+}
+
+.event-card {
+	background: rgba(255, 255, 255, 0.05);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	padding: 15px;
+}
+
+.event-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 10px;
+}
+
+.event-type {
+	color: #3b82f6;
+	font-weight: 600;
+	font-size: 0.85rem;
+	text-transform: uppercase;
+}
+
+.event-date {
+	color: #999;
+	font-size: 0.85rem;
+}
+
+.event-name {
+	color: white;
+	font-size: 1.1rem;
+	margin: 8px 0;
+	font-weight: 600;
+}
+
+.event-description {
+	color: #ccc;
+	font-size: 0.9rem;
+	margin: 0;
+	line-height: 1.4;
+}
+
 @media (max-width: 768px) {
 	.planets-grid {
 		grid-template-columns: 1fr;

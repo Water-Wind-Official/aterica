@@ -10,10 +10,7 @@ export type Planet =
 	| "Venus" 
 	| "Mars" 
 	| "Jupiter" 
-	| "Saturn"
-	| "Uranus"
-	| "Neptune"
-	| "Pluto";
+	| "Saturn";
 
 export type ZodiacSign = 
 	| "Aries" 
@@ -35,6 +32,7 @@ export interface PlanetaryDignity {
 	dignity: "Domicile" | "Exaltation" | "Detriment" | "Fall" | "Neutral";
 	score: number; // -10 to +10
 	isRetrograde: boolean;
+	longitude: number; // For alignment calculations
 }
 
 // Swiss Ephemeris planet numbers
@@ -46,19 +44,15 @@ const PLANET_NUMBERS: Record<Planet, number> = {
 	Mars: 4,
 	Jupiter: 5,
 	Saturn: 6,
-	Uranus: 7,
-	Neptune: 8,
-	Pluto: 9,
 };
 
-// Essential Dignity tables (only for traditional 7 planets)
-// Outer planets (Uranus, Neptune, Pluto) don't have traditional dignity rulerships
-const PLANETARY_DIGNITIES: Partial<Record<Planet, {
+// Essential Dignity tables
+const PLANETARY_DIGNITIES: Record<Planet, {
 	domiciles: ZodiacSign[];
 	exaltation: ZodiacSign;
 	detriment: ZodiacSign[];
 	fall: ZodiacSign;
-}>> = {
+}> = {
 	Sun: {
 		domiciles: ["Leo"],
 		exaltation: "Aries",
@@ -108,6 +102,38 @@ const ZODIAC_SIGNS: ZodiacSign[] = [
 	"Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
 	"Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
+
+// Element associations for signs
+export type Element = "Fire" | "Earth" | "Air" | "Water";
+
+export const SIGN_ELEMENTS: Record<ZodiacSign, Element> = {
+	Aries: "Fire",
+	Taurus: "Earth",
+	Gemini: "Air",
+	Cancer: "Water",
+	Leo: "Fire",
+	Virgo: "Earth",
+	Libra: "Air",
+	Scorpio: "Water",
+	Sagittarius: "Fire",
+	Capricorn: "Earth",
+	Aquarius: "Air",
+	Pisces: "Water",
+};
+
+export interface PlanetaryAlignment {
+	planets: Planet[];
+	type: "Conjunction" | "Opposition" | "Grand Trine" | "T-Square" | "Grand Cross" | "Stellium" | "Linear";
+	description: string;
+	strength: number; // 0-100
+}
+
+export interface UpcomingEvent {
+	type: "Solstice" | "Equinox" | "Eclipse" | "Meteor Shower" | "Planetary Alignment";
+	name: string;
+	date: Date;
+	description: string;
+}
 
 // Initialize Swiss Ephemeris (call this once, cache the result)
 let sweInstance: any = null;
@@ -224,21 +250,6 @@ function calculateDignityScore(
 	let dignity: PlanetaryDignity["dignity"] = "Neutral";
 	let score = 0;
 
-	// Outer planets don't have traditional dignity
-	if (!dignities) {
-		// For outer planets, just apply retrograde penalty if applicable
-		if (isRetrograde) {
-			score = -2;
-		}
-		return {
-			planet,
-			sign,
-			dignity: "Neutral",
-			score,
-			isRetrograde,
-		};
-	}
-
 	// Check Domicile (Home - strongest)
 	if (dignities.domiciles.includes(sign)) {
 		dignity = "Domicile";
@@ -274,19 +285,21 @@ function calculateDignityScore(
 		dignity,
 		score,
 		isRetrograde,
+		longitude: 0, // Will be set by caller
 	};
 }
 
 // Get all planets with their current dignity using Swiss Ephemeris
 export async function getAllPlanetaryDignities(date: Date): Promise<PlanetaryDignity[]> {
 	const swe = await initSwissEphemeris();
-	const planets: Planet[] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
+	const planets: Planet[] = ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
 	
 	const results = await Promise.all(
 		planets.map(async (planet) => {
 			const { longitude, isRetrograde } = await getPlanetPosition(swe, planet, date);
 			const sign = longitudeToSign(longitude);
-			return calculateDignityScore(planet, sign, isRetrograde);
+			const dignity = calculateDignityScore(planet, sign, isRetrograde);
+			return { ...dignity, longitude };
 		})
 	);
 	
@@ -315,4 +328,195 @@ export function getHourRuler(date: Date): Planet {
 	const hoursSinceMidnight = date.getHours();
 	const hourIndex = hoursSinceMidnight % 7;
 	return chaldeanOrder[hourIndex];
+}
+
+// Calculate angular distance between two longitudes (0-180°)
+function angularDistance(lon1: number, lon2: number): number {
+	let diff = Math.abs(lon1 - lon2);
+	if (diff > 180) diff = 360 - diff;
+	return diff;
+}
+
+// Normalize longitude to 0-360
+function normalizeLongitude(lon: number): number {
+	lon = lon % 360;
+	if (lon < 0) lon += 360;
+	return lon;
+}
+
+// Check if planets form a straight line (alignment)
+// This detects conjunctions, oppositions, and linear alignments
+export function detectAlignments(dignities: PlanetaryDignity[]): PlanetaryAlignment[] {
+	const alignments: PlanetaryAlignment[] = [];
+	const tolerance = 8; // degrees tolerance for alignment
+	
+	// Check for conjunctions (planets close together)
+	for (let i = 0; i < dignities.length; i++) {
+		for (let j = i + 1; j < dignities.length; j++) {
+			const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
+			if (dist <= tolerance) {
+				alignments.push({
+					planets: [dignities[i].planet, dignities[j].planet],
+					type: "Conjunction",
+					description: `${dignities[i].planet} and ${dignities[j].planet} are in conjunction`,
+					strength: Math.round(100 * (1 - dist / tolerance)),
+				});
+			}
+		}
+	}
+	
+	// Check for oppositions (180° apart)
+	for (let i = 0; i < dignities.length; i++) {
+		for (let j = i + 1; j < dignities.length; j++) {
+			const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
+			if (Math.abs(dist - 180) <= tolerance) {
+				alignments.push({
+					planets: [dignities[i].planet, dignities[j].planet],
+					type: "Opposition",
+					description: `${dignities[i].planet} and ${dignities[j].planet} are in opposition`,
+					strength: Math.round(100 * (1 - Math.abs(dist - 180) / tolerance)),
+				});
+			}
+		}
+	}
+	
+	// Check for linear alignments (3+ planets forming a line)
+	// This checks if planets are roughly aligned in a straight line
+	for (let i = 0; i < dignities.length; i++) {
+		for (let j = i + 1; j < dignities.length; j++) {
+			for (let k = j + 1; k < dignities.length; k++) {
+				const lon1 = normalizeLongitude(dignities[i].longitude);
+				const lon2 = normalizeLongitude(dignities[j].longitude);
+				const lon3 = normalizeLongitude(dignities[k].longitude);
+				
+				// Sort longitudes
+				const sorted = [lon1, lon2, lon3].sort((a, b) => a - b);
+				
+				// Check if they form a line (consecutive or wrap around)
+				const dist1 = sorted[1] - sorted[0];
+				const dist2 = sorted[2] - sorted[1];
+				const dist3 = 360 - sorted[2] + sorted[0]; // wrap around distance
+				
+				// Check if any two distances are similar (forming a line)
+				const linearTolerance = 15; // degrees
+				if (Math.abs(dist1 - dist2) <= linearTolerance || 
+					Math.abs(dist2 - dist3) <= linearTolerance ||
+					Math.abs(dist3 - dist1) <= linearTolerance) {
+					alignments.push({
+						planets: [dignities[i].planet, dignities[j].planet, dignities[k].planet],
+						type: "Linear",
+						description: `${dignities[i].planet}, ${dignities[j].planet}, and ${dignities[k].planet} form a linear alignment`,
+						strength: 75,
+					});
+				}
+			}
+		}
+	}
+	
+	// Check for stellium (3+ planets in same sign)
+	const signGroups: Record<ZodiacSign, PlanetaryDignity[]> = {} as any;
+	dignities.forEach(d => {
+		if (!signGroups[d.sign]) signGroups[d.sign] = [];
+		signGroups[d.sign].push(d);
+	});
+	
+	Object.entries(signGroups).forEach(([sign, planets]) => {
+		if (planets.length >= 3) {
+			alignments.push({
+				planets: planets.map(p => p.planet),
+				type: "Stellium",
+				description: `${planets.length} planets in ${sign}`,
+				strength: planets.length * 15,
+			});
+		}
+	});
+	
+	return alignments;
+}
+
+// Get upcoming astrological events
+export async function getUpcomingEvents(startDate: Date, daysAhead: number = 365): Promise<UpcomingEvent[]> {
+	const events: UpcomingEvent[] = [];
+	const endDate = new Date(startDate);
+	endDate.setDate(endDate.getDate() + daysAhead);
+	
+	// Calculate solstices and equinoxes
+	const currentYear = startDate.getFullYear();
+	const nextYear = endDate.getFullYear();
+	
+	for (let year = currentYear; year <= nextYear; year++) {
+		// Spring Equinox (around March 20)
+		const springEquinox = new Date(year, 2, 20);
+		if (springEquinox >= startDate && springEquinox <= endDate) {
+			events.push({
+				type: "Equinox",
+				name: "Spring Equinox",
+				date: springEquinox,
+				description: "Day and night are equal length. Spring begins in the Northern Hemisphere.",
+			});
+		}
+		
+		// Summer Solstice (around June 21)
+		const summerSolstice = new Date(year, 5, 21);
+		if (summerSolstice >= startDate && summerSolstice <= endDate) {
+			events.push({
+				type: "Solstice",
+				name: "Summer Solstice",
+				date: summerSolstice,
+				description: "Longest day of the year. Summer begins in the Northern Hemisphere.",
+			});
+		}
+		
+		// Fall Equinox (around September 22)
+		const fallEquinox = new Date(year, 8, 22);
+		if (fallEquinox >= startDate && fallEquinox <= endDate) {
+			events.push({
+				type: "Equinox",
+				name: "Autumn Equinox",
+				date: fallEquinox,
+				description: "Day and night are equal length. Autumn begins in the Northern Hemisphere.",
+			});
+		}
+		
+		// Winter Solstice (around December 21)
+		const winterSolstice = new Date(year, 11, 21);
+		if (winterSolstice >= startDate && winterSolstice <= endDate) {
+			events.push({
+				type: "Solstice",
+				name: "Winter Solstice",
+				date: winterSolstice,
+				description: "Shortest day of the year. Winter begins in the Northern Hemisphere.",
+			});
+		}
+	}
+	
+	// Add major meteor showers (approximate dates)
+	const meteorShowers = [
+		{ name: "Quadrantids", month: 0, day: 3, description: "Peak meteor shower in January" },
+		{ name: "Lyrids", month: 3, day: 22, description: "Spring meteor shower" },
+		{ name: "Perseids", month: 7, day: 12, description: "Most popular summer meteor shower" },
+		{ name: "Orionids", month: 9, day: 21, description: "Autumn meteor shower" },
+		{ name: "Leonids", month: 10, day: 17, description: "November meteor shower" },
+		{ name: "Geminids", month: 11, day: 14, description: "Peak winter meteor shower" },
+	];
+	
+	meteorShowers.forEach(shower => {
+		const eventDate = new Date(currentYear, shower.month, shower.day);
+		if (eventDate < startDate) {
+			eventDate.setFullYear(currentYear + 1);
+		}
+		if (eventDate >= startDate && eventDate <= endDate) {
+			events.push({
+				type: "Meteor Shower",
+				name: shower.name,
+				date: eventDate,
+				description: shower.description,
+			});
+		}
+	});
+	
+	// Sort by date
+	events.sort((a, b) => a.date.getTime() - b.date.getTime());
+	
+	return events.slice(0, 10); // Return next 10 events
 }
