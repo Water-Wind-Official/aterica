@@ -370,6 +370,12 @@ a {
 	align-items: flex-start;
 }
 
+@media (min-width: 900px) {
+	.natal-chart-layout {
+		align-items: stretch;
+	}
+}
+
 .natal-chart-container {
 	display: flex;
 	justify-content: center;
@@ -389,6 +395,16 @@ a {
 	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
 	border-radius: 8px;
 	border: 1px solid #333;
+	display: flex;
+	flex-direction: column;
+	height: fit-content;
+	max-height: 100%;
+}
+
+@media (min-width: 900px) {
+	.planet-summary-panel {
+		max-height: 540px; /* Match wheel size (500px) + padding */
+	}
 }
 
 .planet-summary-panel h4 {
@@ -403,6 +419,9 @@ a {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	flex: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 .planet-summary-item {
