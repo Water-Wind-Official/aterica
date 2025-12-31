@@ -594,22 +594,25 @@ export async function calculateElementalProfile(
 	buffs.fire += 5;   // Constant fire presence
 	
 	// 5. Latitude-based Buffs (mutually exclusive: fire at equator, water at poles, 0 at 45°)
+	// Also applies debuff to opposite element (half the buff amount)
 	const latitude = Math.abs(location.latitude); // Use absolute value (works for both hemispheres)
 	let latitudeFireBuff = 0;
 	let latitudeWaterBuff = 0;
 	
 	if (latitude <= 45) {
 		// From equator (0°) to 45° parallel - fire buff decreases linearly
-		// At 0°: +20 fire, 0 water
+		// At 0°: +40 fire, -20 water
 		// At 45°: 0 fire, 0 water
 		const ratio = latitude / 45;
-		latitudeFireBuff = 20 * (1 - ratio);
+		latitudeFireBuff = 40 * (1 - ratio);
+		latitudeWaterBuff = -20 * (1 - ratio); // Debuff to opposite element
 	} else {
 		// From 45° to poles (90°) - water buff increases linearly
 		// At 45°: 0 fire, 0 water
-		// At 90°: 0 fire, +20 water
+		// At 90°: -20 fire, +40 water
 		const ratio = (latitude - 45) / 45;
-		latitudeWaterBuff = 20 * ratio;
+		latitudeWaterBuff = 40 * ratio;
+		latitudeFireBuff = -20 * ratio; // Debuff to opposite element
 	}
 	
 	buffs.fire += latitudeFireBuff;
@@ -748,14 +751,24 @@ export async function calculateElementalProfile(
 		details: "Earth (+12), Air (+10), Fire (+5), Water (+5)",
 	});
 	
-	// Latitude breakdown
+	// Latitude breakdown (recalculate for display)
+	const latitudeBuffsDisplay = { fire: 0, earth: 0, air: 0, water: 0 };
+	if (latitude <= 45) {
+		const ratio = latitude / 45;
+		latitudeBuffsDisplay.fire = 40 * (1 - ratio);
+		latitudeBuffsDisplay.water = -20 * (1 - ratio); // Debuff to opposite element
+	} else {
+		const ratio = (latitude - 45) / 45;
+		latitudeBuffsDisplay.water = 40 * ratio;
+		latitudeBuffsDisplay.fire = -20 * ratio; // Debuff to opposite element
+	}
 	breakdown.push({
 		source: "Latitude",
 		weight: 0,
-		fire: latitudeFireBuff,
+		fire: latitudeBuffsDisplay.fire,
 		earth: 0,
 		air: 0,
-		water: latitudeWaterBuff,
+		water: latitudeBuffsDisplay.water,
 		spirit: 0,
 		details: `Latitude: ${location.latitude.toFixed(2)}°`,
 	});
