@@ -370,13 +370,12 @@ export async function calculateSunriseSunset(
 ): Promise<{ sunrise: Date; sunset: Date }> {
 	const swe = await initSwissEphemeris();
 	
-	// Get Julian Day for the date at noon local time
-	// Swiss Ephemeris swe_rise_trans expects local time for the location
-	// We use local date components because we want sunrise/sunset for the local day at this location
-	const year = date.getFullYear();
-	const month = date.getMonth() + 1;
-	const day = date.getDate();
-	// Use noon local time as the reference point
+	// Swiss Ephemeris works in UT (Universal Time)
+	// Convert local date to UT for calculation
+	// Get the date at noon UT for the day we're interested in
+	const year = date.getUTCFullYear();
+	const month = date.getUTCMonth() + 1;
+	const day = date.getUTCDate();
 	const julianDay = swe.swe_julday(year, month, day, 12.0, 1);
 	
 	// Calculate sunrise (SE_CALC_RISE = 1)
@@ -417,14 +416,18 @@ export async function calculateSunriseSunset(
 }
 
 // Convert Julian Day to Date (local time)
-// Swiss Ephemeris swe_rise_trans returns times in local time for the location
+// Swiss Ephemeris swe_rise_trans calculates local sunrise/sunset for the given longitude
+// The Julian Day it returns represents the local time, but in UT format
+// We need to interpret it as local time for the location
 async function julianDayToDate(jd: number): Promise<Date> {
 	const swe = await initSwissEphemeris();
 	const result = swe.swe_revjul(jd, 1); // 1 = Gregorian
 	const hour = result.hour || 0;
 	const minute = Math.floor((hour % 1) * 60);
 	const second = Math.floor(((hour % 1) * 60 % 1) * 60);
-	// Create Date in local time (not UTC) since Swiss Ephemeris returns local times
+	// Swiss Ephemeris swe_rise_trans with longitude returns local time for that location
+	// but as a UT Julian Day. We interpret the components as local time.
+	// Create Date in local timezone (not UTC) since swe_rise_trans already accounted for longitude
 	return new Date(result.year, result.month - 1, result.day, Math.floor(hour), minute, second);
 }
 
