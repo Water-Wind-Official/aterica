@@ -491,8 +491,7 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 			) : (
 				<div className="natal-chart-layout">
 					<div className="natal-chart-container">
-				<div className="natal-chart-container">
-					<svg
+						<svg
 						width={wheelSize}
 						height={wheelSize}
 						viewBox={`0 0 ${wheelSize} ${wheelSize}`}
