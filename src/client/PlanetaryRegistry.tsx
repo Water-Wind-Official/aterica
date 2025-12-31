@@ -297,6 +297,25 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		});
 	};
 
+	// Format event date with duration information
+	const formatEventDateWithDuration = (event: UpcomingEvent): string => {
+		const dateStr = formatEventDate(event.date);
+		
+		// Add duration information based on event type
+		let duration = "";
+		if (event.type === "Solstice" || event.type === "Equinox") {
+			duration = " (Duration: 1 day)";
+		} else if (event.type === "Meteor Shower") {
+			duration = " (Peak: 3 days)";
+		} else if (event.type === "Eclipse") {
+			duration = " (Duration: 24 hours)";
+		} else if (event.type === "Planetary Alignment") {
+			duration = " (Duration: 24 hours)";
+		}
+		
+		return dateStr + duration;
+	};
+
 	// Check if an event is currently happening (based on selected date/time)
 	const isEventHappening = (event: UpcomingEvent): boolean => {
 		// Use the selected date/time for comparison
