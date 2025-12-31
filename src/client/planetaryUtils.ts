@@ -588,7 +588,7 @@ export async function calculateElementalProfile(
 	}
 	
 	// 4. Constant Buffs
-	buffs.earth += 18; // We're on Earth
+	buffs.earth += 12; // We're on Earth
 	buffs.water += 5;  // Surrounded by water
 	buffs.air += 10;   // Surrounded by air
 	buffs.fire += 5;   // Constant fire presence
@@ -741,11 +741,11 @@ export async function calculateElementalProfile(
 		source: "Constants",
 		weight: 0,
 		fire: 5,
-		earth: 18,
+		earth: 12,
 		air: 10,
 		water: 5,
 		spirit: 0,
-		details: "Earth (+18), Air (+10), Fire (+5), Water (+5)",
+		details: "Earth (+12), Air (+10), Fire (+5), Water (+5)",
 	});
 	
 	// Latitude breakdown

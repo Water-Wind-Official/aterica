@@ -599,36 +599,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 						</div>
 					)}
 
-					{/* Alignments Section */}
-					{alignments.length > 0 && (
-						<div className="alignments-section">
-							<h3>
-								Active Alignments{" "}
-								<span 
-									className="info-icon"
-									onMouseEnter={(e) => showTooltip(tooltipContent.alignment, e)}
-									onMouseLeave={hideTooltip}
-								>
-									ℹ️
-								</span>
-							</h3>
-							<div className="alignments-grid">
-								{alignments.map((alignment, idx) => (
-									<div key={idx} className="alignment-card">
-										<div className="alignment-header">
-											<span className="alignment-type">{alignment.type}</span>
-											<span className="alignment-strength">{alignment.strength}%</span>
-										</div>
-										<p className="alignment-planets">
-											{alignment.planets.map(p => getPlanetEmoji(p)).join(" ")} {alignment.planets.join(", ")}
-										</p>
-										<p className="alignment-description">{alignment.description}</p>
-									</div>
-								))}
-							</div>
-						</div>
-					)}
-
 					{/* Planets Grid */}
 					<div className="planets-grid">
 						{dignities.map((dignity) => {
@@ -733,6 +703,36 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 											)}
 										</h4>
 										<p className="event-description">{event.description}</p>
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+
+					{/* Alignments Section */}
+					{alignments.length > 0 && (
+						<div className="alignments-section">
+							<h3>
+								Active Alignments{" "}
+								<span 
+									className="info-icon"
+									onMouseEnter={(e) => showTooltip(tooltipContent.alignment, e)}
+									onMouseLeave={hideTooltip}
+								>
+									ℹ️
+								</span>
+							</h3>
+							<div className="alignments-grid">
+								{alignments.map((alignment, idx) => (
+									<div key={idx} className="alignment-card">
+										<div className="alignment-header">
+											<span className="alignment-type">{alignment.type}</span>
+											<span className="alignment-strength">{alignment.strength}%</span>
+										</div>
+										<p className="alignment-planets">
+											{alignment.planets.map(p => getPlanetEmoji(p)).join(" ")} {alignment.planets.join(", ")}
+										</p>
+										<p className="alignment-description">{alignment.description}</p>
 									</div>
 								))}
 							</div>
