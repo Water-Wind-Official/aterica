@@ -363,6 +363,13 @@ a {
 	gap: 10px;
 }
 
+.natal-chart-layout {
+	display: flex;
+	gap: 20px;
+	flex-wrap: wrap;
+	align-items: flex-start;
+}
+
 .natal-chart-container {
 	display: flex;
 	justify-content: center;
@@ -371,6 +378,131 @@ a {
 	background: #0a0a0a;
 	border-radius: 8px;
 	border: 1px solid #222;
+	flex-shrink: 0;
+}
+
+.planet-summary-panel {
+	flex: 1;
+	min-width: 300px;
+	max-width: 400px;
+	padding: 20px;
+	background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+	border-radius: 8px;
+	border: 1px solid #333;
+}
+
+.planet-summary-panel h4 {
+	color: white;
+	font-size: 1.2rem;
+	margin-bottom: 15px;
+	border-bottom: 1px solid #333;
+	padding-bottom: 10px;
+}
+
+.planet-summary-list {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.planet-summary-item {
+	padding: 12px;
+	background: rgba(255, 255, 255, 0.03);
+	border-radius: 6px;
+	border: 1px solid #333;
+	transition: all 0.2s ease;
+}
+
+.planet-summary-item:hover {
+	background: rgba(255, 255, 255, 0.08);
+	border-color: #555;
+	transform: translateX(4px);
+}
+
+.planet-summary-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.planet-emoji {
+	font-size: 1.2rem;
+}
+
+.planet-name {
+	color: white;
+	font-weight: 600;
+	font-size: 1rem;
+}
+
+.retrograde-indicator {
+	background: #f87171;
+	color: white;
+	font-size: 0.7rem;
+	padding: 2px 6px;
+	border-radius: 3px;
+	font-weight: bold;
+}
+
+.planet-summary-details {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 6px;
+	font-size: 0.9rem;
+}
+
+.planet-sign {
+	font-weight: 600;
+}
+
+.planet-house {
+	color: #999;
+	font-size: 0.85rem;
+}
+
+.planet-dignity {
+	margin-top: 4px;
+}
+
+.dignity-badge {
+	display: inline-block;
+	padding: 4px 8px;
+	border-radius: 4px;
+	font-size: 0.75rem;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.dignity-domicile {
+	background: rgba(74, 222, 128, 0.2);
+	color: #4ade80;
+	border: 1px solid rgba(74, 222, 128, 0.4);
+}
+
+.dignity-exaltation {
+	background: rgba(96, 165, 250, 0.2);
+	color: #60a5fa;
+	border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.dignity-detriment {
+	background: rgba(251, 146, 60, 0.2);
+	color: #fb923c;
+	border: 1px solid rgba(251, 146, 60, 0.4);
+}
+
+.dignity-fall {
+	background: rgba(248, 113, 113, 0.2);
+	color: #f87171;
+	border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.dignity-neutral {
+	background: rgba(156, 163, 175, 0.2);
+	color: #9ca3af;
+	border: 1px solid rgba(156, 163, 175, 0.4);
 }
 
 .natal-chart-wheel {

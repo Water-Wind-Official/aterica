@@ -5,7 +5,7 @@ interface NatalChartWheelProps {
 	dignities: PlanetaryDignity[];
 	date: Date;
 	location: Location | null;
-	onPlanetHover?: (planet: PlanetaryDignity | null, event: React.MouseEvent) => void;
+	onPlanetHover?: (planet: PlanetaryDignity | null, interpretation: string | null, event: React.MouseEvent) => void;
 	onAngularPointHover?: (point: { name: string; description: string; longitude: number; sign: ZodiacSign } | null, event: React.MouseEvent) => void;
 }
 
@@ -280,11 +280,14 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 					key={dignity.planet}
 					onMouseEnter={(e) => {
 						e.stopPropagation();
-						onPlanetHover?.(dignity, e);
+						const house = getHouseForPlanet(dignity.longitude);
+						const element = SIGN_ELEMENTS[dignity.sign];
+						const interpretation = houseCusps ? getPlanetInterpretation(dignity.planet, dignity.sign, house, dignity.dignity, element) : null;
+						onPlanetHover?.(dignity, interpretation, e);
 					}}
 					onMouseLeave={(e) => {
 						e.stopPropagation();
-						onPlanetHover?.(null, e);
+						onPlanetHover?.(null, null, e);
 					}}
 					style={{ cursor: 'pointer' }}
 				>
@@ -377,6 +380,87 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 	// Get Ascendant sign for display
 	const ascendantSign = houseCusps ? longitudeToSign(houseCusps.ascendant) : null;
 
+	// Get planet position summary with house
+	const planetSummary = useMemo(() => {
+		if (!houseCusps) return [];
+		
+		return dignities.map((dignity) => {
+			const house = getHouseForPlanet(dignity.longitude);
+			const signDegrees = dignity.longitude % 30;
+			const signDeg = Math.floor(signDegrees);
+			const signMin = Math.floor((signDegrees - signDeg) * 60);
+			const element = SIGN_ELEMENTS[dignity.sign];
+			
+			return {
+				...dignity,
+				house,
+				signDeg,
+				signMin,
+				element,
+			};
+		});
+	}, [dignities, houseCusps]);
+
+	// Get interpretation for planet position
+	const getPlanetInterpretation = (planet: Planet, sign: ZodiacSign, house: number | null, dignity: PlanetaryDignity["dignity"], element: Element): string => {
+		const planetMeanings: Record<Planet, string> = {
+			Sun: "Your core identity, ego, and life force",
+			Moon: "Your emotions, instincts, and inner needs",
+			Mercury: "Your communication style, thinking, and learning",
+			Venus: "Your values, love style, and aesthetic preferences",
+			Mars: "Your drive, energy, and how you take action",
+			Jupiter: "Your growth, expansion, and philosophical outlook",
+			Saturn: "Your discipline, limitations, and life lessons",
+		};
+
+		const signMeanings: Record<ZodiacSign, string> = {
+			Aries: "assertive, pioneering, independent",
+			Taurus: "stable, sensual, practical",
+			Gemini: "curious, communicative, adaptable",
+			Cancer: "nurturing, emotional, protective",
+			Leo: "creative, confident, expressive",
+			Virgo: "analytical, service-oriented, detail-focused",
+			Libra: "harmonious, diplomatic, relationship-oriented",
+			Scorpio: "intense, transformative, secretive",
+			Sagittarius: "adventurous, philosophical, freedom-loving",
+			Capricorn: "ambitious, disciplined, traditional",
+			Aquarius: "innovative, independent, humanitarian",
+			Pisces: "intuitive, compassionate, dreamy",
+		};
+
+		const houseMeanings: Record<number, string> = {
+			1: "self-image, identity, how you present yourself",
+			2: "possessions, values, material security",
+			3: "communication, siblings, learning, short trips",
+			4: "home, family, roots, private life",
+			5: "creativity, romance, children, self-expression",
+			6: "work, health, daily routines, service",
+			7: "partnerships, relationships, others",
+			8: "transformation, shared resources, mysteries",
+			9: "philosophy, higher learning, travel, beliefs",
+			10: "career, public image, reputation, authority",
+			11: "friendships, groups, hopes, dreams",
+			12: "subconscious, hidden matters, spirituality",
+		};
+
+		const dignityMeanings: Record<PlanetaryDignity["dignity"], string> = {
+			Domicile: "strong, comfortable, at home",
+			Exaltation: "honored, elevated, expressing best qualities",
+			Detriment: "challenged, uncomfortable, needs extra effort",
+			Fall: "weakened, struggling, requires support",
+			Neutral: "balanced, adaptable",
+		};
+
+		const planetBase = planetMeanings[planet];
+		const signDesc = signMeanings[sign];
+		const houseDesc = house ? houseMeanings[house] : "house unknown";
+		const dignityDesc = dignityMeanings[dignity];
+		const retroText = dignity.isRetrograde ? " (Retrograde - internalized energy)" : "";
+		const houseSuffix = house === 1 ? 'st' : house === 2 ? 'nd' : house === 3 ? 'rd' : 'th';
+
+		return `${planetBase}.\n\nIn ${sign}: Expresses through ${signDesc} qualities.\n\nIn ${house}${house ? houseSuffix : ''} House: Focuses on ${houseDesc}.\n\nDignity: ${dignityDesc}${retroText}.\n\nElement: ${element} - ${element === 'Fire' ? 'passionate and action-oriented' : element === 'Earth' ? 'practical and grounded' : element === 'Air' ? 'intellectual and social' : 'emotional and intuitive'}.`;
+	};
+
 	return (
 		<div className="natal-chart-section">
 			<h3>
@@ -405,6 +489,8 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 					<p>Location required for natal chart calculation</p>
 				</div>
 			) : (
+				<div className="natal-chart-layout">
+					<div className="natal-chart-container">
 				<div className="natal-chart-container">
 					<svg
 						width={wheelSize}
@@ -648,6 +734,66 @@ export const NatalChartWheel = memo(function NatalChartWheel({ dignities, date, 
 							fill="#fff"
 						/>
 					</svg>
+					</div>
+					
+					{/* Planet Summary Panel */}
+					{houseCusps && (
+						<div className="planet-summary-panel">
+							<h4>Planet Positions</h4>
+							<div className="planet-summary-list">
+								{planetSummary.map((planet) => {
+									const signAbbr = getSignAbbr(planet.sign);
+									const elementColor = getElementColor(planet.element);
+									const interpretation = getPlanetInterpretation(
+										planet.planet,
+										planet.sign,
+										planet.house,
+										planet.dignity,
+										planet.element
+									);
+
+									return (
+										<div
+											key={planet.planet}
+											className="planet-summary-item"
+											onMouseEnter={(e) => {
+												if (onPlanetHover) {
+													onPlanetHover(planet, interpretation, e);
+												}
+											}}
+											onMouseLeave={(e) => {
+												if (onPlanetHover) {
+													onPlanetHover(null, null, e);
+												}
+											}}
+											style={{ cursor: 'pointer' }}
+										>
+											<div className="planet-summary-header">
+												<span className="planet-emoji">{getPlanetEmoji(planet.planet)}</span>
+												<span className="planet-name">{planet.planet}</span>
+												{planet.isRetrograde && (
+													<span className="retrograde-indicator" title="Retrograde">R</span>
+												)}
+											</div>
+											<div className="planet-summary-details">
+												<span className="planet-sign" style={{ color: elementColor }}>
+													{signAbbr} {planet.signDeg}°{planet.signMin.toString().padStart(2, '0')}'
+												</span>
+												{planet.house && (
+													<span className="planet-house">House {planet.house}</span>
+												)}
+											</div>
+											<div className="planet-dignity">
+												<span className={`dignity-badge dignity-${planet.dignity.toLowerCase()}`}>
+													{planet.dignity}
+												</span>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					)}
 				</div>
 			)}
 		</div>
