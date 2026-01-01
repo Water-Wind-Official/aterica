@@ -949,11 +949,11 @@ export async function calculateElementalProfile(
 	}
 	
 	// Calculate Akasha (Spirit) value
-	let akasha = 25; // Base value
+	let akasha = 0; // Start at 0 (base removed)
 	
 	// Track Akasha contributions for breakdown
 	const akashaContributions = {
-		base: 25,
+		moonPhase: 0,
 		conjunctions: 0,
 		oppositions: 0,
 		linear: 0,
@@ -966,6 +966,19 @@ export async function calculateElementalProfile(
 		retrograde: 0,
 	};
 	
+	// Get moon phase and calculate contribution
+	const moonPhaseInfo = await getMoonPhase(date);
+	let moonPhaseContribution = 0;
+	
+	// Calculate variably between -30 (New Moon) and +30 (Full Moon)
+	// Use illumination percentage: 0% = New Moon (-30), 100% = Full Moon (+30)
+	// Formula: contribution = (illumination / 100) * 60 - 30
+	// This gives: 0% illumination = -30, 50% = 0, 100% = +30
+	moonPhaseContribution = (moonPhaseInfo.illumination / 100) * 60 - 30;
+	
+	akasha += moonPhaseContribution;
+	akashaContributions.moonPhase = moonPhaseContribution;
+	
 	// Get planetary alignments
 	const alignments = detectAlignments(dignities);
 	
@@ -974,8 +987,8 @@ export async function calculateElementalProfile(
 		let contribution = 0;
 		switch (alignment.type) {
 			case "Conjunction":
-				// +7 per planet involved
-				contribution = alignment.planets.length * 7;
+				// +5 per planet involved
+				contribution = alignment.planets.length * 5;
 				akashaContributions.conjunctions += contribution;
 				break;
 			case "Opposition":
@@ -984,8 +997,8 @@ export async function calculateElementalProfile(
 				akashaContributions.oppositions += contribution;
 				break;
 			case "Linear":
-				// +8 per planet involved
-				contribution = alignment.planets.length * 8;
+				// +3 per planet involved
+				contribution = alignment.planets.length * 3;
 				akashaContributions.linear += contribution;
 				break;
 			case "Stellium":
@@ -1107,6 +1120,9 @@ export async function calculateElementalProfile(
 			akashaContributions.retrograde -= 12;
 		}
 	});
+	
+	// Divide final value by 3 to get Akasha percentage
+	akasha = akasha / 3;
 	
 	// Ensure Akasha doesn't go negative
 	akasha = Math.max(0, akasha);
@@ -1361,8 +1377,10 @@ export async function calculateElementalProfile(
 	
 	// Akasha (Spirit) breakdown
 	const akashaDetails: string[] = [];
-	if (akashaContributions.base > 0) {
-		akashaDetails.push(`Base: ${akashaContributions.base}`);
+	// Show moon phase contribution
+	if (akashaContributions.moonPhase !== 0) {
+		const moonPhaseSign = akashaContributions.moonPhase > 0 ? '+' : '';
+		akashaDetails.push(`Moon Phase (${moonPhaseInfo.phase}): ${moonPhaseSign}${akashaContributions.moonPhase.toFixed(1)}`);
 	}
 	// Show each alignment type separately
 	if (akashaContributions.conjunctions !== 0) {
