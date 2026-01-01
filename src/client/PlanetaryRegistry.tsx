@@ -443,8 +443,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		const total = profile[elementKey];
 		
 		const parts: string[] = [];
-		let basePercentage = 0;
-		let totalBuffs = 0;
 		
 		// Special handling for Akasha to show detailed breakdown
 		if (element === "Akasha") {
@@ -455,17 +453,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				detailLines.forEach(detail => {
 					parts.push(detail);
 				});
-				// Calculate total adjustments (sum of all contributions)
-				totalBuffs = total;
 			} else {
 				// Fallback to standard breakdown
 				profile.breakdown.forEach(component => {
 					const componentValue = component[elementKey];
 					if (component.source === "Base Percentages") {
-						basePercentage = componentValue;
 						parts.push(`Base: ${Math.round(componentValue)}%`);
 					} else if (componentValue !== 0) {
-						totalBuffs += componentValue;
 						const sign = componentValue > 0 ? "+" : "";
 						parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
 					}
@@ -476,10 +470,8 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			profile.breakdown.forEach(component => {
 				const componentValue = component[elementKey];
 				if (component.source === "Base Percentages") {
-					basePercentage = componentValue;
 					parts.push(`Base: ${Math.round(componentValue)}%`);
 				} else if (componentValue !== 0) {
-					totalBuffs += componentValue;
 					const sign = componentValue > 0 ? "+" : "";
 					parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
 				}
@@ -487,11 +479,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		}
 		
 		const displayName = element === "Akasha" ? "Akasha" : element;
-		// For Akasha, skip "Total Adjustments" since it's the same as final percentage
-		if (element === "Akasha") {
-			return `${displayName} Breakdown:\n${parts.join("\n")}\n\nFinal Percentage: ${Math.round(total)}%`;
-		}
-		return `${displayName} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${Math.round(totalBuffs)}\nFinal Percentage: ${Math.round(total)}%`;
+		return `${displayName} Breakdown:\n${parts.join("\n")}\n\nFinal Percentage: ${Math.round(total)}%`;
 	};
 
 	const formatDateInput = (date: Date): string => {

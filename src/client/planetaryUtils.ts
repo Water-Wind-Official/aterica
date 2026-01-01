@@ -109,7 +109,7 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather" | "Astrological Events" | "Akasha";
+	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather" | "Temperature" | "Astrological Events" | "Akasha";
 	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
@@ -948,6 +948,43 @@ export async function calculateElementalProfile(
 		}
 	}
 	
+	// 9. Temperature-based Buffs
+	let temperature: number | null = null;
+	let temperatureBuffs = { fire: 0, earth: 0, air: 0, water: 0 };
+	
+	try {
+		temperature = await getTemperature(location.latitude, location.longitude);
+		if (temperature !== null) {
+			// Temperature affects elements:
+			// +20 Fire if > 88°F
+			// +10 Fire if > 79°F
+			// -10 Water if > 88°F
+			// +10 Water if < 44°F
+			
+			if (temperature > 88) {
+				// Very hot - strong fire, reduce water
+				temperatureBuffs.fire = 20;
+				temperatureBuffs.water = -10;
+			} else if (temperature > 79) {
+				// Hot - moderate fire
+				temperatureBuffs.fire = 10;
+			}
+			
+			if (temperature < 44) {
+				// Cold - increase water
+				temperatureBuffs.water = 10;
+			}
+			
+			// Apply temperature buffs
+			buffs.fire += temperatureBuffs.fire;
+			buffs.earth += temperatureBuffs.earth;
+			buffs.air += temperatureBuffs.air;
+			buffs.water += temperatureBuffs.water;
+		}
+	} catch (error) {
+		console.error("Error fetching temperature:", error);
+	}
+	
 	// Calculate Akasha (Spirit) value
 	let akasha = 0; // Start at 0 (base removed)
 	
@@ -962,6 +999,7 @@ export async function calculateElementalProfile(
 		events: 0,
 		planetaryHour: 0,
 		elementalBalance: 0,
+		temperature: 0,
 		detriment: 0,
 		retrograde: 0,
 	};
@@ -1142,6 +1180,26 @@ export async function calculateElementalProfile(
 	
 	akasha += balanceBonus;
 	akashaContributions.elementalBalance = balanceBonus;
+	
+	// Temperature contribution to Akasha
+	// Extreme temperatures (very hot or very cold) affect the energetic field
+	if (temperature !== null) {
+		let tempContribution = 0;
+		if (temperature >= 90 || temperature <= 20) {
+			// Extreme temperatures - strong energetic effect
+			tempContribution = 15;
+		} else if (temperature >= 88 || temperature <= 32) {
+			// Very hot or very cold - moderate effect
+			tempContribution = 8;
+		} else if (temperature >= 50 && temperature <= 70) {
+			// Moderate/comfortable temperature - slight positive effect
+			tempContribution = 5;
+		}
+		// Temperatures between 32-50°F and 70-88°F have no effect (neutral zone)
+		
+		akasha += tempContribution;
+		akashaContributions.temperature = tempContribution;
+	}
 	
 	// Planetary dignity contributions to Akasha
 	dignities.forEach(dignity => {
@@ -1406,6 +1464,20 @@ export async function calculateElementalProfile(
 		});
 	}
 	
+	// Temperature breakdown
+	if (temperature !== null) {
+		breakdown.push({
+			source: "Temperature",
+			weight: 0,
+			fire: temperatureBuffs.fire,
+			earth: temperatureBuffs.earth,
+			air: temperatureBuffs.air,
+			water: temperatureBuffs.water,
+			spirit: 0,
+			details: `Temperature: ${Math.round(temperature)}°F`,
+		});
+	}
+	
 	// Akasha (Spirit) breakdown
 	const akashaDetails: string[] = [];
 	// Show moon phase contribution
@@ -1437,6 +1509,9 @@ export async function calculateElementalProfile(
 	}
 	if (akashaContributions.elementalBalance > 0) {
 		akashaDetails.push(`Elemental Balance: +${akashaContributions.elementalBalance.toFixed(1)}`);
+	}
+	if (akashaContributions.temperature > 0) {
+		akashaDetails.push(`Temperature: +${akashaContributions.temperature}`);
 	}
 	if (akashaContributions.detriment < 0) {
 		akashaDetails.push(`Detriment: ${akashaContributions.detriment}`);
@@ -1498,6 +1573,30 @@ function getSeason(date: Date, latitude: number): "Winter" | "Spring" | "Summer"
 	}
 }
 
+
+// Get current temperature for a location using Open-Meteo (free, no API key required)
+export async function getTemperature(latitude: number, longitude: number): Promise<number | null> {
+	try {
+		// Open-Meteo free weather API - no API key needed
+		const response = await fetch(
+			`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=fahrenheit`
+		);
+		
+		if (!response.ok) {
+			return null;
+		}
+		
+		const data = await response.json();
+		if (data && data.current && typeof data.current.temperature_2m === 'number') {
+			return data.current.temperature_2m;
+		}
+		
+		return null;
+	} catch (error) {
+		console.error("Error fetching temperature:", error);
+		return null;
+	}
+}
 
 // Simple zip code to lat/long lookup using free geocoding API
 export async function zipCodeToLocation(zipCode: string): Promise<Location | null> {
