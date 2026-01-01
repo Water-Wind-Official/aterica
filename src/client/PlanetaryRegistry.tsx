@@ -602,8 +602,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 
 	return (
 		<div className={`planetary-registry ${className || ""}`}>
-			<h2>Astral Dashboard</h2>
-			
 			<div className="datetime-controls">
 				<div className="control-group">
 					<label htmlFor="date-input">Date:</label>

@@ -112,11 +112,8 @@ function App() {
 			{/* Footer */}
 			<footer className="sanctum-footer">
 				<div className="footer-content">
-					<p className="footer-text">
-						This is a <span className="sanctum-highlight">Sanctum Network</span> production
-					</p>
 					<p className="footer-link">
-						Rent a page like this for <span className="price-highlight">$7</span> a month at{" "}
+						Make a custom website like this for <span className="price-highlight">$7</span> a month at{" "}
 						<a href="https://sanctumnetwork.com" target="_blank" rel="noopener noreferrer" className="footer-link-text">
 							sanctumnetwork.com
 						</a>
