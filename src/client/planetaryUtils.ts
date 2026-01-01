@@ -109,7 +109,7 @@ export type Element = "Fire" | "Earth" | "Air" | "Water" | "Spirit";
 export type Tattva = "Akasha" | "Vayu" | "Tejas" | "Apas" | "Prithvi";
 
 export interface ElementalBreakdown {
-	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather" | "Astrological Events";
+	source: "Base Percentages" | "Planetary Positions" | "Planetary Hour" | "Tattva" | "Constants" | "Latitude" | "Time of Day" | "Season" | "Weather" | "Astrological Events" | "Akasha";
 	weight: number; // percentage weight (not used in new system, kept for compatibility)
 	fire: number;
 	earth: number;
@@ -948,6 +948,163 @@ export async function calculateElementalProfile(
 		}
 	}
 	
+	// Calculate Akasha (Spirit) value
+	let akasha = 25; // Base value
+	
+	// Track Akasha contributions for breakdown
+	const akashaContributions = {
+		base: 25,
+		alignments: 0,
+		tattva: 0,
+		events: 0,
+		planetaryHour: 0,
+		elementalBalance: 0,
+		detriment: 0,
+		retrograde: 0,
+	};
+	
+	// Get planetary alignments
+	const alignments = detectAlignments(dignities);
+	
+	// Alignment contributions to Akasha
+	alignments.forEach(alignment => {
+		let contribution = 0;
+		switch (alignment.type) {
+			case "Conjunction":
+				// +7 per planet involved
+				contribution = alignment.planets.length * 7;
+				break;
+			case "Opposition":
+				// -12 per planet involved
+				contribution = -alignment.planets.length * 12;
+				break;
+			case "Linear":
+				// +8 per planet involved
+				contribution = alignment.planets.length * 8;
+				break;
+			case "Stellium":
+				// +30 per stellium (not per planet)
+				contribution = 30;
+				break;
+		}
+		akasha += contribution;
+		akashaContributions.alignments += contribution;
+	});
+	
+	// Tattva contribution
+	if (tattva === "Akasha") {
+		akasha += 15;
+		akashaContributions.tattva = 15;
+	}
+	
+	// Event contributions to Akasha
+	events.forEach(event => {
+		const eventDate = new Date(event.date);
+		const dayDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24);
+		const hourDiff = Math.abs(date.getTime() - eventDate.getTime()) / (1000 * 60 * 60);
+		
+		let isHappening = false;
+		if (event.type === "Solstice" || event.type === "Equinox") {
+			isHappening = dayDiff <= 1;
+		} else if (event.type === "Meteor Shower" || (event.type === "Planetary Alignment" && event.name.toLowerCase().includes("comet"))) {
+			isHappening = dayDiff <= 3;
+		} else if (event.type === "Eclipse" || event.type === "Planetary Alignment") {
+			isHappening = hourDiff <= 24;
+		}
+		
+		if (isHappening) {
+			let contribution = 0;
+			switch (event.type) {
+				case "Eclipse":
+					contribution = 100;
+					break;
+				case "Solstice":
+					contribution = 20;
+					break;
+				case "Equinox":
+					contribution = 9;
+					break;
+				case "Meteor Shower":
+					contribution = 15;
+					break;
+				case "Planetary Alignment":
+					if (event.name.toLowerCase().includes("comet")) {
+						contribution = 15;
+					}
+					break;
+			}
+			akasha += contribution;
+			akashaContributions.events += contribution;
+		}
+	});
+	
+	// Planetary hour contributions to Akasha
+	let planetaryHourContribution = 0;
+	switch (planetaryHour.ruler) {
+		case "Saturn":
+			planetaryHourContribution = 9;
+			break;
+		case "Jupiter":
+			planetaryHourContribution = 4;
+			break;
+		case "Sun":
+			planetaryHourContribution = 4;
+			break;
+		case "Moon":
+			planetaryHourContribution = 4;
+			break;
+	}
+	akasha += planetaryHourContribution;
+	akashaContributions.planetaryHour = planetaryHourContribution;
+	
+	// Calculate elemental balance contribution
+	// First, calculate current elemental values (before Akasha)
+	const tempFire = Math.max(0, basePercentages.fire + buffs.fire);
+	const tempEarth = Math.max(0, basePercentages.earth + buffs.earth);
+	const tempAir = Math.max(0, basePercentages.air + buffs.air);
+	const tempWater = Math.max(0, basePercentages.water + buffs.water);
+	
+	// Find min and max values
+	const elementValues = [tempFire, tempEarth, tempAir, tempWater];
+	const minValue = Math.min(...elementValues);
+	const maxValue = Math.max(...elementValues);
+	
+	// Calculate balance: +0 when range is 15% or more, +20 at 100% match (all equal)
+	let balanceBonus = 0;
+	if (maxValue > 0) {
+		const range = maxValue - minValue;
+		const rangePercent = (range / maxValue) * 100;
+		
+		if (rangePercent >= 15) {
+			// Range is 15% or more - bonus is 0
+			balanceBonus = 0;
+		} else {
+			// Range is less than 15% - calculate bonus
+			// At 0% range (perfect match): bonus = 20
+			// At 15% range: bonus = 0
+			// Linear interpolation: bonus = 20 * (1 - rangePercent / 15)
+			balanceBonus = 20 * (1 - rangePercent / 15);
+		}
+	}
+	
+	akasha += balanceBonus;
+	akashaContributions.elementalBalance = balanceBonus;
+	
+	// Planetary dignity contributions to Akasha
+	dignities.forEach(dignity => {
+		if (dignity.dignity === "Detriment") {
+			akasha -= 9; // -9 per planet in detriment
+			akashaContributions.detriment -= 9;
+		}
+		if (dignity.isRetrograde) {
+			akasha -= 12; // -12 per retrograde planet (stacking)
+			akashaContributions.retrograde -= 12;
+		}
+	});
+	
+	// Ensure Akasha doesn't go negative
+	akasha = Math.max(0, akasha);
+	
 	// Convert buffs to percentage points and add to base percentages
 	// Allow values to exceed 100% - just display the actual value
 	const profile: ElementalProfile = {
@@ -955,7 +1112,7 @@ export async function calculateElementalProfile(
 		earth: Math.max(0, basePercentages.earth + buffs.earth),
 		air: Math.max(0, basePercentages.air + buffs.air),
 		water: Math.max(0, basePercentages.water + buffs.water),
-		spirit: Math.max(0, basePercentages.spirit + buffs.spirit),
+		spirit: akasha, // Use calculated Akasha value
 		planetaryHour: planetaryHour.ruler,
 		tattva,
 		moonSign,
@@ -1195,6 +1352,44 @@ export async function calculateElementalProfile(
 			details: `Weather: ${weather}`,
 		});
 	}
+	
+	// Akasha (Spirit) breakdown
+	const akashaDetails: string[] = [];
+	if (akashaContributions.base > 0) {
+		akashaDetails.push(`Base: ${akashaContributions.base}`);
+	}
+	if (akashaContributions.alignments !== 0) {
+		akashaDetails.push(`Alignments: ${akashaContributions.alignments > 0 ? '+' : ''}${akashaContributions.alignments}`);
+	}
+	if (akashaContributions.tattva > 0) {
+		akashaDetails.push(`Tattva (Akasha): +${akashaContributions.tattva}`);
+	}
+	if (akashaContributions.events > 0) {
+		akashaDetails.push(`Events: +${akashaContributions.events}`);
+	}
+	if (akashaContributions.planetaryHour > 0) {
+		akashaDetails.push(`Planetary Hour (${planetaryHour.ruler}): +${akashaContributions.planetaryHour}`);
+	}
+	if (akashaContributions.elementalBalance > 0) {
+		akashaDetails.push(`Elemental Balance: +${akashaContributions.elementalBalance.toFixed(1)}`);
+	}
+	if (akashaContributions.detriment < 0) {
+		akashaDetails.push(`Detriment: ${akashaContributions.detriment}`);
+	}
+	if (akashaContributions.retrograde < 0) {
+		akashaDetails.push(`Retrograde: ${akashaContributions.retrograde}`);
+	}
+	
+	breakdown.push({
+		source: "Akasha",
+		weight: 0,
+		fire: 0,
+		earth: 0,
+		air: 0,
+		water: 0,
+		spirit: akasha,
+		details: akashaDetails.length > 0 ? akashaDetails.join(", ") : "Base value only",
+	});
 	
 	profile.breakdown = breakdown;
 	
