@@ -1000,6 +1000,7 @@ export async function calculateElementalProfile(
 		planetaryHour: 0,
 		elementalBalance: 0,
 		temperature: 0,
+		weather: 0,
 		detriment: 0,
 		retrograde: 0,
 	};
@@ -1147,6 +1148,27 @@ export async function calculateElementalProfile(
 	}
 	akasha += planetaryHourContribution;
 	akashaContributions.planetaryHour = planetaryHourContribution;
+	
+	// Weather contributions to Akasha
+	if (weather) {
+		let weatherContribution = 0;
+		switch (weather) {
+			case "Windy":
+				weatherContribution = 5;
+				break;
+			case "Drizzle":
+				weatherContribution = 5;
+				break;
+			case "Rainstorm":
+				weatherContribution = 8;
+				break;
+			case "ThunderStorm":
+				weatherContribution = 10;
+				break;
+		}
+		akasha += weatherContribution;
+		akashaContributions.weather = weatherContribution;
+	}
 	
 	// Calculate elemental balance contribution
 	// First, calculate current elemental values (before Akasha)
@@ -1506,6 +1528,9 @@ export async function calculateElementalProfile(
 	}
 	if (akashaContributions.planetaryHour > 0) {
 		akashaDetails.push(`Planetary Hour (${planetaryHour.ruler}): +${akashaContributions.planetaryHour}`);
+	}
+	if (akashaContributions.weather > 0) {
+		akashaDetails.push(`Weather (${weather}): +${akashaContributions.weather}`);
 	}
 	if (akashaContributions.elementalBalance > 0) {
 		akashaDetails.push(`Elemental Balance: +${akashaContributions.elementalBalance.toFixed(1)}`);
