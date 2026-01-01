@@ -487,6 +487,10 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		}
 		
 		const displayName = element === "Akasha" ? "Akasha" : element;
+		// For Akasha, skip "Total Adjustments" since it's the same as final percentage
+		if (element === "Akasha") {
+			return `${displayName} Breakdown:\n${parts.join("\n")}\n\nFinal Percentage: ${Math.round(total)}%`;
+		}
 		return `${displayName} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${Math.round(totalBuffs)}\nFinal Percentage: ${Math.round(total)}%`;
 	};
 
