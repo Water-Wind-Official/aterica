@@ -954,7 +954,10 @@ export async function calculateElementalProfile(
 	// Track Akasha contributions for breakdown
 	const akashaContributions = {
 		base: 25,
-		alignments: 0,
+		conjunctions: 0,
+		oppositions: 0,
+		linear: 0,
+		stelliums: 0,
 		tattva: 0,
 		events: 0,
 		planetaryHour: 0,
@@ -966,29 +969,32 @@ export async function calculateElementalProfile(
 	// Get planetary alignments
 	const alignments = detectAlignments(dignities);
 	
-	// Alignment contributions to Akasha
+	// Alignment contributions to Akasha - track each type separately
 	alignments.forEach(alignment => {
 		let contribution = 0;
 		switch (alignment.type) {
 			case "Conjunction":
 				// +7 per planet involved
 				contribution = alignment.planets.length * 7;
+				akashaContributions.conjunctions += contribution;
 				break;
 			case "Opposition":
 				// -12 per planet involved
 				contribution = -alignment.planets.length * 12;
+				akashaContributions.oppositions += contribution;
 				break;
 			case "Linear":
 				// +8 per planet involved
 				contribution = alignment.planets.length * 8;
+				akashaContributions.linear += contribution;
 				break;
 			case "Stellium":
 				// +30 per stellium (not per planet)
 				contribution = 30;
+				akashaContributions.stelliums += contribution;
 				break;
 		}
 		akasha += contribution;
-		akashaContributions.alignments += contribution;
 	});
 	
 	// Tattva contribution
@@ -1358,8 +1364,18 @@ export async function calculateElementalProfile(
 	if (akashaContributions.base > 0) {
 		akashaDetails.push(`Base: ${akashaContributions.base}`);
 	}
-	if (akashaContributions.alignments !== 0) {
-		akashaDetails.push(`Alignments: ${akashaContributions.alignments > 0 ? '+' : ''}${akashaContributions.alignments}`);
+	// Show each alignment type separately
+	if (akashaContributions.conjunctions !== 0) {
+		akashaDetails.push(`Conjunctions: ${akashaContributions.conjunctions > 0 ? '+' : ''}${akashaContributions.conjunctions}`);
+	}
+	if (akashaContributions.oppositions !== 0) {
+		akashaDetails.push(`Oppositions: ${akashaContributions.oppositions > 0 ? '+' : ''}${akashaContributions.oppositions}`);
+	}
+	if (akashaContributions.linear !== 0) {
+		akashaDetails.push(`Linear: ${akashaContributions.linear > 0 ? '+' : ''}${akashaContributions.linear}`);
+	}
+	if (akashaContributions.stelliums !== 0) {
+		akashaDetails.push(`Stelliums: ${akashaContributions.stelliums > 0 ? '+' : ''}${akashaContributions.stelliums}`);
 	}
 	if (akashaContributions.tattva > 0) {
 		akashaDetails.push(`Tattva (Akasha): +${akashaContributions.tattva}`);
