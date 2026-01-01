@@ -780,36 +780,36 @@ export async function calculateElementalProfile(
 		spirit: 0,
 	};
 	
-	// 1. Planetary Position Buffs (halved)
+	// 1. Planetary Position Buffs (halved, then multiplied by 1.5x)
 	dignities.forEach(dignity => {
 		const element = SIGN_ELEMENTS[dignity.sign];
 		
 		switch (dignity.planet) {
 			case "Sun":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 9; // 18 / 2
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 13.5; // 9 * 1.5
 				break;
 			case "Moon":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 6; // 12 / 2
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 9; // 6 * 1.5
 				break;
 			case "Mercury":
 			case "Venus":
 			case "Mars":
 			case "Jupiter":
 			case "Saturn":
-				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 4; // 8 / 2
+				buffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += 6; // 4 * 1.5
 				break;
 		}
 	});
 	
-	// 2. Tattva Hour Buff (+10)
+	// 2. Tattva Hour Buff (+15) - multiplied by 1.5x
 	if (tattvaElement !== "Spirit") {
-		buffs[tattvaElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 10;
+		buffs[tattvaElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 15; // 10 * 1.5
 	}
 	
-	// 3. Planetary Hour Buff (+10) - based on specific mapping
+	// 3. Planetary Hour Buff (+11)
 	const planetaryHourElement = getPlanetaryHourElement(planetaryHour.ruler);
 	if (planetaryHourElement !== "Spirit") {
-		buffs[planetaryHourElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 10;
+		buffs[planetaryHourElement.toLowerCase() as "fire" | "earth" | "air" | "water"] += 11;
 	}
 	
 	// 4. Constant Buffs
@@ -1037,9 +1037,9 @@ export async function calculateElementalProfile(
 	dignities.forEach(dignity => {
 		const element = SIGN_ELEMENTS[dignity.sign];
 		let buff = 0;
-		if (dignity.planet === "Sun") buff = 9; // 18 / 2
-		else if (dignity.planet === "Moon") buff = 6; // 12 / 2
-		else buff = 4; // 8 / 2
+		if (dignity.planet === "Sun") buff = 13.5; // 9 * 1.5
+		else if (dignity.planet === "Moon") buff = 9; // 6 * 1.5
+		else buff = 6; // 4 * 1.5
 		positionBuffs[element.toLowerCase() as "fire" | "earth" | "air" | "water"] += buff;
 	});
 	
@@ -1058,10 +1058,10 @@ export async function calculateElementalProfile(
 	breakdown.push({
 		source: "Tattva",
 		weight: 0,
-		fire: tattvaElement === "Fire" ? 10 : 0,
-		earth: tattvaElement === "Earth" ? 10 : 0,
-		air: tattvaElement === "Air" ? 10 : 0,
-		water: tattvaElement === "Water" ? 10 : 0,
+		fire: tattvaElement === "Fire" ? 15 : 0, // 10 * 1.5
+		earth: tattvaElement === "Earth" ? 15 : 0, // 10 * 1.5
+		air: tattvaElement === "Air" ? 15 : 0, // 10 * 1.5
+		water: tattvaElement === "Water" ? 15 : 0, // 10 * 1.5
 		spirit: 0,
 		details: `Current Tattva: ${tattva} (${tattvaElement} element)`,
 	});
@@ -1070,10 +1070,10 @@ export async function calculateElementalProfile(
 	breakdown.push({
 		source: "Planetary Hour",
 		weight: 0,
-		fire: planetaryHourElement === "Fire" ? 10 : 0,
-		earth: planetaryHourElement === "Earth" ? 10 : 0,
-		air: planetaryHourElement === "Air" ? 10 : 0,
-		water: planetaryHourElement === "Water" ? 10 : 0,
+		fire: planetaryHourElement === "Fire" ? 11 : 0,
+		earth: planetaryHourElement === "Earth" ? 11 : 0,
+		air: planetaryHourElement === "Air" ? 11 : 0,
+		water: planetaryHourElement === "Water" ? 11 : 0,
 		spirit: 0,
 		details: `${planetaryHour.ruler} Hour (${planetaryHourElement} element)`,
 	});
