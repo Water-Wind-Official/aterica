@@ -992,7 +992,15 @@ export async function calculateElementalProfile(
 	
 	// Alignment contributions to Akasha - track each type separately
 	// Only count each planet once per alignment type
+	// Minimum strength threshold: only count alignments with at least 20% strength
+	const minStrengthThreshold = 20;
+	
 	alignments.forEach(alignment => {
+		// Skip alignments below minimum strength threshold
+		if (alignment.strength < minStrengthThreshold) {
+			return;
+		}
+		
 		let contribution = 0;
 		let planetsToCount: Planet[] = [];
 		
@@ -1540,21 +1548,27 @@ function normalizeLongitude(lon: number): number {
 
 // Check if planets form a straight line (alignment)
 // This detects conjunctions, oppositions, and linear alignments
+// Only returns alignments with at least 20% strength (meaningful alignments)
 export function detectAlignments(dignities: PlanetaryDignity[]): PlanetaryAlignment[] {
 	const alignments: PlanetaryAlignment[] = [];
 	const tolerance = 8; // degrees tolerance for alignment
+	const minStrength = 20; // Minimum strength percentage to be considered meaningful
 	
 	// Check for conjunctions (planets close together)
 	for (let i = 0; i < dignities.length; i++) {
 		for (let j = i + 1; j < dignities.length; j++) {
 			const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
 			if (dist <= tolerance) {
-				alignments.push({
-					planets: [dignities[i].planet, dignities[j].planet],
-					type: "Conjunction",
-					description: `${dignities[i].planet} and ${dignities[j].planet} are in conjunction`,
-					strength: Math.round(100 * (1 - dist / tolerance)),
-				});
+				const strength = Math.round(100 * (1 - dist / tolerance));
+				// Only add if strength is meaningful (>= 20%)
+				if (strength >= minStrength) {
+					alignments.push({
+						planets: [dignities[i].planet, dignities[j].planet],
+						type: "Conjunction",
+						description: `${dignities[i].planet} and ${dignities[j].planet} are in conjunction`,
+						strength,
+					});
+				}
 			}
 		}
 	}
@@ -1564,12 +1578,16 @@ export function detectAlignments(dignities: PlanetaryDignity[]): PlanetaryAlignm
 		for (let j = i + 1; j < dignities.length; j++) {
 			const dist = angularDistance(dignities[i].longitude, dignities[j].longitude);
 			if (Math.abs(dist - 180) <= tolerance) {
-				alignments.push({
-					planets: [dignities[i].planet, dignities[j].planet],
-					type: "Opposition",
-					description: `${dignities[i].planet} and ${dignities[j].planet} are in opposition`,
-					strength: Math.round(100 * (1 - Math.abs(dist - 180) / tolerance)),
-				});
+				const strength = Math.round(100 * (1 - Math.abs(dist - 180) / tolerance));
+				// Only add if strength is meaningful (>= 20%)
+				if (strength >= minStrength) {
+					alignments.push({
+						planets: [dignities[i].planet, dignities[j].planet],
+						type: "Opposition",
+						description: `${dignities[i].planet} and ${dignities[j].planet} are in opposition`,
+						strength,
+					});
+				}
 			}
 		}
 	}
@@ -1593,14 +1611,31 @@ export function detectAlignments(dignities: PlanetaryDignity[]): PlanetaryAlignm
 				
 				// Check if any two distances are similar (forming a line)
 				const linearTolerance = 15; // degrees
-				if (Math.abs(dist1 - dist2) <= linearTolerance || 
-					Math.abs(dist2 - dist3) <= linearTolerance ||
-					Math.abs(dist3 - dist1) <= linearTolerance) {
+				const dist12Diff = Math.abs(dist1 - dist2);
+				const dist23Diff = Math.abs(dist2 - dist3);
+				const dist31Diff = Math.abs(dist3 - dist1);
+				
+				// Calculate strength based on how well they align
+				// Best alignment: distances are equal (0 difference)
+				// Worst meaningful alignment: 15° difference
+				let strength = 0;
+				if (dist12Diff <= linearTolerance) {
+					strength = Math.max(strength, Math.round(100 * (1 - dist12Diff / linearTolerance)));
+				}
+				if (dist23Diff <= linearTolerance) {
+					strength = Math.max(strength, Math.round(100 * (1 - dist23Diff / linearTolerance)));
+				}
+				if (dist31Diff <= linearTolerance) {
+					strength = Math.max(strength, Math.round(100 * (1 - dist31Diff / linearTolerance)));
+				}
+				
+				// Only add if strength is meaningful (>= 20%)
+				if (strength >= minStrength) {
 					alignments.push({
 						planets: [dignities[i].planet, dignities[j].planet, dignities[k].planet],
 						type: "Linear",
 						description: `${dignities[i].planet}, ${dignities[j].planet}, and ${dignities[k].planet} form a linear alignment`,
-						strength: 75,
+						strength,
 					});
 				}
 			}
