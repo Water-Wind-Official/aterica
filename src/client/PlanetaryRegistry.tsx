@@ -9,6 +9,7 @@ import {
 	zipCodeToLocation,
 	calculateHouseCusps,
 	longitudeToSign,
+	getMoonPhase,
 	ZODIAC_SIGNS,
 	SIGN_ELEMENTS,
 	type PlanetaryDignity, 
@@ -20,6 +21,7 @@ import {
 	type Location,
 	type ZodiacSign,
 	type HouseCusps,
+	type MoonPhaseInfo,
 } from "./planetaryUtils";
 import { NatalChartWheel } from "./NatalChartWheel";
 
@@ -48,6 +50,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [dayRuler, setDayRuler] = useState<Planet>("Sun");
 	const [hourRuler, setHourRuler] = useState<Planet>("Sun");
 	const [houseCusps, setHouseCusps] = useState<HouseCusps | null>(null);
+	const [moonPhase, setMoonPhase] = useState<MoonPhaseInfo | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [tooltip, setTooltip] = useState<TooltipState>({ show: false, content: "", x: 0, y: 0 });
@@ -103,18 +106,21 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				return calculateElementalProfile(dateTime, location, selectedWeather, events);
 			})() : Promise.resolve(null),
 			location ? calculateHouseCusps(dateTime, location.latitude, location.longitude) : Promise.resolve(null),
+			getMoonPhase(dateTime),
 		])
 			.then((results) => {
 				const allDignities = results[0] as PlanetaryDignity[];
 				const events = results[1] as UpcomingEvent[];
 				const profile = results[2] as ElementalProfile | null;
 				const cusps = results[3] as HouseCusps | null;
+				const moonPhaseInfo = results[4] as MoonPhaseInfo;
 
 				setDignities(allDignities);
 				setAlignments(detectAlignments(allDignities));
 				setUpcomingEvents(events);
 				setElementalProfile(profile);
 				setHouseCusps(cusps);
+				setMoonPhase(moonPhaseInfo);
 				
 				// Always calculate day ruler from the actual date/time
 				const dayRuler = getDayRuler(dateTime);
@@ -417,27 +423,71 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		}
 	};
 
-	const getElementBreakdown = (profile: ElementalProfile, element: Element): string => {
-		const elementKey = element.toLowerCase() as "fire" | "earth" | "air" | "water" | "spirit";
+	const getMoonPhaseEmoji = (phase: MoonPhaseInfo["phase"]): string => {
+		switch (phase) {
+			case "New Moon": return "🌑";
+			case "Waxing Crescent": return "🌒";
+			case "First Quarter": return "🌓";
+			case "Waxing Gibbous": return "🌔";
+			case "Full Moon": return "🌕";
+			case "Waning Gibbous": return "🌖";
+			case "Last Quarter": return "🌗";
+			case "Waning Crescent": return "🌘";
+		}
+	};
+
+	const getElementBreakdown = (profile: ElementalProfile, element: Element | "Akasha"): string => {
+		// Handle "Akasha" as an alias for "Spirit"
+		const actualElement = element === "Akasha" ? "Spirit" : element;
+		const elementKey = actualElement.toLowerCase() as "fire" | "earth" | "air" | "water" | "spirit";
 		const total = profile[elementKey];
 		
 		const parts: string[] = [];
 		let basePercentage = 0;
 		let totalBuffs = 0;
 		
-		profile.breakdown.forEach(component => {
-			const componentValue = component[elementKey];
-			if (component.source === "Base Percentages") {
-				basePercentage = componentValue;
-				parts.push(`Base: ${Math.round(componentValue)}%`);
-			} else if (componentValue !== 0) {
-				totalBuffs += componentValue;
-				const sign = componentValue > 0 ? "+" : "";
-				parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
+		// Special handling for Akasha to show detailed breakdown
+		if (element === "Akasha") {
+			const akashaComponent = profile.breakdown.find(c => c.source === "Akasha");
+			if (akashaComponent && akashaComponent.details) {
+				// Show the detailed breakdown from the details field
+				const detailLines = akashaComponent.details.split(", ");
+				detailLines.forEach(detail => {
+					parts.push(detail);
+				});
+				// Calculate total adjustments (total - base of 25)
+				totalBuffs = total - 25;
+			} else {
+				// Fallback to standard breakdown
+				profile.breakdown.forEach(component => {
+					const componentValue = component[elementKey];
+					if (component.source === "Base Percentages") {
+						basePercentage = componentValue;
+						parts.push(`Base: ${Math.round(componentValue)}%`);
+					} else if (componentValue !== 0) {
+						totalBuffs += componentValue;
+						const sign = componentValue > 0 ? "+" : "";
+						parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
+					}
+				});
 			}
-		});
+		} else {
+			// Standard breakdown for other elements
+			profile.breakdown.forEach(component => {
+				const componentValue = component[elementKey];
+				if (component.source === "Base Percentages") {
+					basePercentage = componentValue;
+					parts.push(`Base: ${Math.round(componentValue)}%`);
+				} else if (componentValue !== 0) {
+					totalBuffs += componentValue;
+					const sign = componentValue > 0 ? "+" : "";
+					parts.push(`${component.source}: ${sign}${Math.round(componentValue)}`);
+				}
+			});
+		}
 		
-		return `${element} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${Math.round(totalBuffs)}\nFinal Percentage: ${Math.round(total)}%`;
+		const displayName = element === "Akasha" ? "Akasha" : element;
+		return `${displayName} Breakdown:\n${parts.join("\n")}\n\nTotal Adjustments: ${totalBuffs > 0 ? "+" : ""}${Math.round(totalBuffs)}\nFinal Percentage: ${Math.round(total)}%`;
 	};
 
 	const formatDateInput = (date: Date): string => {
@@ -867,13 +917,13 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 										className="element-compact" 
 										style={{ "--percent": `${elementalProfile.spirit}%`, "--color": "#a855f7" } as React.CSSProperties}
 										onMouseEnter={(e) => {
-											const breakdown = getElementBreakdown(elementalProfile, "Spirit");
+											const breakdown = getElementBreakdown(elementalProfile, "Akasha");
 											showTooltip(breakdown, e);
 										}}
 										onMouseLeave={hideTooltip}
 									>
 										<span className="element-emoji">✨</span>
-										<span className="element-name">Spirit</span>
+										<span className="element-name">Akasha</span>
 										<span className="element-percent">{Math.round(elementalProfile.spirit)}%</span>
 										<div className="element-bar-mini"></div>
 									</div>
@@ -935,6 +985,33 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 								</div>
 							);
 						})}
+						
+						{/* Moon Phase Card */}
+						{moonPhase && (
+							<div className="planet-card">
+								<div className="planet-header">
+									<span className="planet-emoji">{getMoonPhaseEmoji(moonPhase.phase)}</span>
+									<h3 className="planet-name">Moon Phase</h3>
+								</div>
+								
+								<div className="planet-details">
+									<div className="planet-sign">
+										<span className="sign-label">Phase:</span>{" "}
+										<span className="sign-value">{moonPhase.phase}</span>
+									</div>
+									
+									<div className="planet-sign">
+										<span className="sign-label">Illumination:</span>{" "}
+										<span className="sign-value">{moonPhase.illumination}%</span>
+									</div>
+									
+									<div className="planet-sign">
+										<span className="sign-label">Age:</span>{" "}
+										<span className="sign-value">{moonPhase.age} days</span>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 
 					{/* Upcoming Events Section */}

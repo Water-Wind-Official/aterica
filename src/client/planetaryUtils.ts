@@ -1789,3 +1789,64 @@ export async function calculateHouseCusps(
 		descendant,
 	};
 }
+
+// Moon phase types
+export type MoonPhase = "New Moon" | "Waxing Crescent" | "First Quarter" | "Waxing Gibbous" | "Full Moon" | "Waning Gibbous" | "Last Quarter" | "Waning Crescent";
+
+export interface MoonPhaseInfo {
+	phase: MoonPhase;
+	illumination: number; // 0-100 percentage
+	age: number; // Days since new moon (0-29.5)
+}
+
+// Calculate moon phase using Sun and Moon positions
+export async function getMoonPhase(date: Date): Promise<MoonPhaseInfo> {
+	const swe = await initSwissEphemeris();
+	
+	// Get Sun and Moon positions
+	const { longitude: sunLongitude } = await getPlanetPosition(swe, "Sun", date);
+	const { longitude: moonLongitude } = await getPlanetPosition(swe, "Moon", date);
+	
+	// Calculate the angle between Sun and Moon (elongation)
+	let elongation = moonLongitude - sunLongitude;
+	
+	// Normalize to 0-360
+	if (elongation < 0) elongation += 360;
+	if (elongation >= 360) elongation -= 360;
+	
+	// Calculate illumination percentage
+	// Illumination = (1 - cos(elongation)) / 2 * 100
+	const elongationRad = (elongation * Math.PI) / 180;
+	const illumination = ((1 - Math.cos(elongationRad)) / 2) * 100;
+	
+	// Calculate moon age (days since new moon)
+	// Moon age = elongation / (360 / 29.53) where 29.53 is the synodic month
+	const synodicMonth = 29.53058867;
+	const age = (elongation / 360) * synodicMonth;
+	
+	// Determine phase based on elongation
+	let phase: MoonPhase;
+	if (elongation < 22.5 || elongation >= 337.5) {
+		phase = "New Moon";
+	} else if (elongation < 67.5) {
+		phase = "Waxing Crescent";
+	} else if (elongation < 112.5) {
+		phase = "First Quarter";
+	} else if (elongation < 157.5) {
+		phase = "Waxing Gibbous";
+	} else if (elongation < 202.5) {
+		phase = "Full Moon";
+	} else if (elongation < 247.5) {
+		phase = "Waning Gibbous";
+	} else if (elongation < 292.5) {
+		phase = "Last Quarter";
+	} else {
+		phase = "Waning Crescent";
+	}
+	
+	return {
+		phase,
+		illumination: Math.round(illumination * 10) / 10, // Round to 1 decimal
+		age: Math.round(age * 10) / 10, // Round to 1 decimal
+	};
+}
