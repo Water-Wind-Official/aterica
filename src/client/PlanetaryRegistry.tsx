@@ -59,7 +59,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 	const [tempMonth, setTempMonth] = useState<number | null>(null);
 	const [tempDay, setTempDay] = useState<number | null>(null);
 
-	// Initialize with default location (90210) and try to get location from browser
+	// Initialize with default location (90210)
 	useEffect(() => {
 		// Set default location to 90210 (Beverly Hills, CA)
 		const setDefaultLocation = async () => {
@@ -70,21 +70,6 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 		};
 		
 		setDefaultLocation();
-		
-		// Try to get location from browser (will override default if successful)
-		if (navigator.geolocation) {
-			navigator.geolocation.getCurrentPosition(
-				(position) => {
-					setLocation({
-						latitude: position.coords.latitude,
-						longitude: position.coords.longitude,
-					});
-				},
-				() => {
-					// User denied or error - that's okay, use default
-				}
-			);
-		}
 	}, []);
 
 	// Handle zip code lookup
@@ -96,7 +81,7 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 			if (loc) {
 				setLocation(loc);
 			} else {
-				setError("Could not find location for that zip code. Using browser location if available.");
+				setError("Could not find location for that zip code.");
 			}
 		}
 	};
