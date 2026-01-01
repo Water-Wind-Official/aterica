@@ -982,29 +982,55 @@ export async function calculateElementalProfile(
 	// Get planetary alignments
 	const alignments = detectAlignments(dignities);
 	
+	// Track which planets have been counted for each alignment type
+	const countedPlanets = {
+		conjunctions: new Set<Planet>(),
+		oppositions: new Set<Planet>(),
+		linear: new Set<Planet>(),
+		stelliums: new Set<Planet>(),
+	};
+	
 	// Alignment contributions to Akasha - track each type separately
+	// Only count each planet once per alignment type
 	alignments.forEach(alignment => {
 		let contribution = 0;
+		let planetsToCount: Planet[] = [];
+		
 		switch (alignment.type) {
 			case "Conjunction":
+				// Only count planets that haven't been counted for conjunctions yet
+				planetsToCount = alignment.planets.filter(p => !countedPlanets.conjunctions.has(p));
+				planetsToCount.forEach(p => countedPlanets.conjunctions.add(p));
 				// +5 per planet involved
-				contribution = alignment.planets.length * 5;
+				contribution = planetsToCount.length * 5;
 				akashaContributions.conjunctions += contribution;
 				break;
 			case "Opposition":
+				// Only count planets that haven't been counted for oppositions yet
+				planetsToCount = alignment.planets.filter(p => !countedPlanets.oppositions.has(p));
+				planetsToCount.forEach(p => countedPlanets.oppositions.add(p));
 				// -12 per planet involved
-				contribution = -alignment.planets.length * 12;
+				contribution = -planetsToCount.length * 12;
 				akashaContributions.oppositions += contribution;
 				break;
 			case "Linear":
+				// Only count planets that haven't been counted for linear yet
+				planetsToCount = alignment.planets.filter(p => !countedPlanets.linear.has(p));
+				planetsToCount.forEach(p => countedPlanets.linear.add(p));
 				// +3 per planet involved
-				contribution = alignment.planets.length * 3;
+				contribution = planetsToCount.length * 3;
 				akashaContributions.linear += contribution;
 				break;
 			case "Stellium":
-				// +30 per stellium (not per planet)
-				contribution = 30;
-				akashaContributions.stelliums += contribution;
+				// Stelliums are counted per stellium, not per planet, so we still track planets
+				// but only count the stellium once if any planet in it hasn't been counted
+				const hasUncountedPlanet = alignment.planets.some(p => !countedPlanets.stelliums.has(p));
+				if (hasUncountedPlanet) {
+					alignment.planets.forEach(p => countedPlanets.stelliums.add(p));
+					// +30 per stellium (not per planet)
+					contribution = 30;
+					akashaContributions.stelliums += contribution;
+				}
 				break;
 		}
 		akasha += contribution;
