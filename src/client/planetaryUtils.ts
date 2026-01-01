@@ -1121,9 +1121,6 @@ export async function calculateElementalProfile(
 		}
 	});
 	
-	// Divide final value by 3 to get Akasha percentage
-	akasha = akasha / 3;
-	
 	// Ensure Akasha doesn't go negative
 	akasha = Math.max(0, akasha);
 	

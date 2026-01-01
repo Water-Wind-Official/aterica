@@ -455,9 +455,8 @@ export function PlanetaryRegistry({ className }: PlanetaryRegistryProps) {
 				detailLines.forEach(detail => {
 					parts.push(detail);
 				});
-				// Calculate total adjustments (total is already divided by 3)
-				// Show raw sum of contributions (multiply by 3 to get pre-division value)
-				totalBuffs = total * 3;
+				// Calculate total adjustments (sum of all contributions)
+				totalBuffs = total;
 			} else {
 				// Fallback to standard breakdown
 				profile.breakdown.forEach(component => {
